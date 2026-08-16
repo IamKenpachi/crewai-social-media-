@@ -1127,9 +1127,9 @@ Return strictly JSON conforming to the schema.`;
           {
             id: 'var-a',
             variant_type: 'EMOTION_FACE',
-            title: 'Variant A: High Emotion & Reaction Shot',
-            concept_description: 'Exaggerated facial expression with intense crimson rim-lighting and particle embers (+42% curiosity click lift).',
-            image_generation_prompt: `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top in bold 3D red and white text reads "WAIT FOR IT". The scene features ${focalData.primary_subject}, ${focalData.emotional_expression}, dramatic red and orange rim lighting, flying fire embers, blurred dark background, 85mm lens`,
+            title: 'Variant A: High Emotion & Reaction Hook',
+            concept_description: 'Exaggerated facial reaction with glowing crimson rim-light and particle embers (+42% curiosity click lift).',
+            image_generation_prompt: `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, and high-CTR. The niche is "${mediaTitle || 'creative design'}". Prominently render bold 3D stylized typography at the top reading "WAIT FOR IT". Add vibrant glowing crimson rim-light outlines around the subject, flying fire embers, and 3D visual elements. ${aspectRatio} aspect ratio.`,
             headline_overlay: 'WAIT FOR IT',
             sub_badge: '⚡ SHOCKING',
             color_accent: '#EF4444',
@@ -1139,25 +1139,25 @@ Return strictly JSON conforming to the schema.`;
           {
             id: 'var-b',
             variant_type: 'CURIOSITY_GAP',
-            title: 'Variant B: 3D Floating Props & Story Dilemma',
-            concept_description: 'Subject holding floating 3D props with glowing electric gold rim-light and hand-drawn doodle arrows.',
-            image_generation_prompt: `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top in giant bold yellow and white 3D letters reads "THE SECRET". The scene features ${focalData.primary_subject} holding ${focalData.context_props}, glowing yellow rim lighting, dark background, 85mm lens`,
-            headline_overlay: 'THE SECRET',
+            title: 'Variant B: 3D Floating Props & Niche Blueprint',
+            concept_description: 'Subject with glowing neon rim-light, floating 3D props (measuring tape, tools, or cash), and tailor blueprint arrows.',
+            image_generation_prompt: `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, and high-CTR. The niche is "${mediaTitle || 'fashion design'}". Prominently render bold, eye-catching 3D stylized typography at the top reading "DRESS DESIGN HACK" in yellow and white. Add glowing cyan neon rim-light outlines around the subject, 3D floating measuring tape, pattern arrows, and contextual props. ${aspectRatio} aspect ratio.`,
+            headline_overlay: 'DRESS DESIGN HACK',
             sub_badge: '★ MUST WATCH',
             color_accent: '#FACC15',
-            ctr_prediction: 20.8,
+            ctr_prediction: 21.4,
             focal_point_focus: focalData.context_props
           },
           {
             id: 'var-c',
             variant_type: 'MINIMAL_PUNCH',
-            title: 'Variant C: Iconic Hero Silhouette on Matte Black',
+            title: 'Variant C: Iconic Hero with High Contrast Glow',
             concept_description: 'Single high-contrast subject with vibrant cyber cyan edge glow, engineered for instant mobile comprehension.',
-            image_generation_prompt: `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top in bold cyan letters reads "THE 1% HACK". The scene features minimalist iconic hero silhouette of ${focalData.primary_subject}, glowing cyan #38BDF8 edge halo, deep matte black background`,
-            headline_overlay: 'THE 1% HACK',
+            image_generation_prompt: `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, and high-CTR. The niche is "${mediaTitle || 'mastery'}". Prominently render bold 3D stylized typography at the top reading "THE 1% SECRET". Add high-contrast cyber cyan #38BDF8 edge halo, clean deep background, and 3D floating elements. ${aspectRatio} aspect ratio.`,
+            headline_overlay: 'THE 1% SECRET',
             sub_badge: 'PRO TIP',
             color_accent: '#38BDF8',
-            ctr_prediction: 17.8,
+            ctr_prediction: 18.2,
             focal_point_focus: 'Hero silhouette'
           }
         ];
@@ -1185,13 +1185,35 @@ Return strictly JSON conforming to the schema.`;
         };
       }
 
-      // Step 3: Direct gemini-3-pro-image API Generation
+      // Step 3: Direct gemini-3-pro-image Image-to-Image Generation (with attached frame!)
       let generatedAiImageBase64 = '';
       try {
+        const imageGenParts: any[] = [];
+        
+        // CRITICAL: Attach the actual source frame image so the model can build the thumbnail around it!
+        if (sourceFrame && sourceFrame.includes('base64,')) {
+          const match = sourceFrame.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            imageGenParts.push({
+              inlineData: {
+                mimeType: match[1],
+                data: match[2]
+              }
+            });
+          }
+        }
+
+        // Add the multimodal instruction prompt
+        const promptInstruction = sourceFrame 
+          ? `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, high-CTR, and visually stunning. The topic/niche is "${mediaTitle}". Prominently render bold, eye-catching 3D stylized typography at the top of the image reading "${primaryHeadline}" with heavy drop shadows. Add vibrant glowing neon rim-light outlines around the subject, and add contextual 3D floating props, annotations, or graphic elements related to the topic. ${aspectRatio} aspect ratio.`
+          : primaryThumbPrompt;
+
+        imageGenParts.push({ text: promptInstruction });
+
         const imageGenResp = await ai.models.generateContent({
           model: 'gemini-3-pro-image',
           contents: {
-            parts: [{ text: primaryThumbPrompt }]
+            parts: imageGenParts
           },
           config: {
             imageConfig: {
@@ -1207,7 +1229,7 @@ Return strictly JSON conforming to the schema.`;
           }
         }
       } catch (genErr) {
-        console.warn('gemini-3-pro-image direct invocation note:', genErr);
+        console.warn('gemini-3-pro-image multimodal invocation note:', genErr);
       }
 
       const effectiveBaseFrame = generatedAiImageBase64 || sourceFrame;
@@ -1562,10 +1584,29 @@ app.post('/api/generate-thumbnail', async (req, res) => {
     let thumbnailUrl = '';
 
     try {
+      const imgParts: any[] = [];
+      if (sourceFrame && sourceFrame.includes('base64,')) {
+        const match = sourceFrame.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          imgParts.push({
+            inlineData: {
+              mimeType: match[1],
+              data: match[2]
+            }
+          });
+        }
+      }
+      
+      const fullPrompt = sourceFrame
+        ? `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, high-CTR, and visually stunning. ${prompt}. Aspect ratio: ${aspectRatio}.`
+        : `YouTube thumbnail, ${aspectRatio} aspect ratio, high contrast, cinematic: ${prompt}`;
+
+      imgParts.push({ text: fullPrompt });
+
       const imgResp = await ai.models.generateContent({
         model: 'gemini-3-pro-image',
         contents: {
-          parts: [{ text: `YouTube thumbnail, ${aspectRatio} aspect ratio, high contrast, cinematic: ${prompt}` }]
+          parts: imgParts
         },
         config: {
           imageConfig: {
@@ -1581,7 +1622,7 @@ app.post('/api/generate-thumbnail', async (req, res) => {
         }
       }
     } catch (e) {
-      // Fallback
+      console.warn('Endpoint /api/generate-thumbnail gemini-3-pro-image error:', e);
     }
 
     if (!thumbnailUrl) {
