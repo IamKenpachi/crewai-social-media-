@@ -25,11 +25,11 @@ export function parseLyriaLyricsToSubtitles(
   const emojiPool = ['☀️', '✨', '👗', '💫', '🎶', '🌸', '💃', '🌴', '🌟', '💖', '🎵', '🔥'];
   const parsedSubtitles: SubtitleLine[] = [];
 
-  // Check if lines have [start:end] or [mm:ss.xx] timestamps
-  const hasRangeTimestamp = lines.some((l) => /^\[\d+(\.\d+)?:/.test(l));
-  const hasStandardLrc = lines.some((l) => /^\[\d{1,2}:\d{2}/.test(l));
+  // Check if lines have standard LRC [mm:ss.xx] or Lyria range [start.s:end.s] timestamps
+  const isStandardLrc = lines.some((l) => /^\[\d{1,2}:\d{2}(?:\.\d+)?\]\s*/.test(l));
+  const isRangeTimestamp = !isStandardLrc && lines.some((l) => /^\[\d+(?:\.\d+)?:\d+(?:\.\d+)?\]\s*/.test(l));
 
-  if (hasRangeTimestamp) {
+  if (isRangeTimestamp) {
     // Format: [0.0:2.6] Sunlight on the kitchen floor
     lines.forEach((line, idx) => {
       const match = line.match(/^\[(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)\]\s*(.*)$/);
@@ -63,7 +63,7 @@ export function parseLyriaLyricsToSubtitles(
         }
       }
     });
-  } else if (hasStandardLrc) {
+  } else if (isStandardLrc) {
     // Format: [00:02.60] Sunlight on the kitchen floor
     const tempLrc: { startMs: number; text: string }[] = [];
     lines.forEach((line) => {

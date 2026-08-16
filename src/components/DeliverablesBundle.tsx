@@ -282,29 +282,31 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     }
   };
 
-  // High-precision 60fps audio/video synchronization loop for real-time word-by-word lyrics
+  // High-precision 60fps audio/video synchronization loop for full song lyrics playback
   useEffect(() => {
     if (!isPlaying) {
+      setCurrentTimeMs(0);
       return;
     }
 
     let animId: number;
     const startAudioTime = performance.now();
-    const clipDurationMs = (activeClip?.duration_seconds || 12) * 1000;
+    const lastLyricEndMs = currentSubtitles.length > 0 ? Math.max(...currentSubtitles.map(l => l.end_ms)) : 27000;
+    const totalSongDurationMs = Math.max(
+      (bundle.music_metadata?.duration_seconds || 27) * 1000,
+      lastLyricEndMs,
+      (activeClip?.duration_seconds || 12) * 1000
+    );
 
     const syncLoop = () => {
-      if (videoRef.current && !videoRef.current.paused && videoRef.current.duration) {
-        setCurrentTimeMs(videoRef.current.currentTime * 1000);
-      } else {
-        const elapsed = (performance.now() - startAudioTime) % clipDurationMs;
-        setCurrentTimeMs(elapsed);
-      }
+      const elapsed = (performance.now() - startAudioTime) % totalSongDurationMs;
+      setCurrentTimeMs(elapsed);
       animId = requestAnimationFrame(syncLoop);
     };
 
     animId = requestAnimationFrame(syncLoop);
     return () => cancelAnimationFrame(animId);
-  }, [isPlaying, activeClip]);
+  }, [isPlaying, currentSubtitles, activeClip, bundle.music_metadata]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -358,6 +360,8 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       const audioUrl = bundle.music_metadata?.audio_url;
       const mood = bundle.creative_brief?.mood_and_tone || 'energetic';
       const bpm = bundle.music_metadata?.bpm || 124;
+      const lastLyricEnd = currentSubtitles.length > 0 ? Math.max(...currentSubtitles.map(l => l.end_ms)) : 27000;
+      const exportDuration = Math.ceil(Math.max((bundle.music_metadata?.duration_seconds || 27), lastLyricEnd / 1000, (activeClip.duration_seconds || 12)));
 
       const blob = await exportVideoWithMusic({
         videoSourceUrl: bundle.final_media_type === 'video' ? sourceVideo : undefined,
@@ -365,7 +369,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
         audioUrl: audioUrl,
         mood: mood,
         bpm: bpm,
-        durationSeconds: activeClip.duration_seconds || 12,
+        durationSeconds: exportDuration,
         filename: 'shorts_with_ai_soundtrack.mp4',
         subtitles: currentSubtitles,
         subtitleStyle: subtitleStyle,

@@ -6,7 +6,7 @@
 class MusicSynthesizerEngine {
   private ctx: AudioContext | null = null;
   private isPlaying: boolean = false;
-  private timerId: number | null = null;
+  private timerId: any = null;
   private bpm: number = 124;
   private duckingGainNode: GainNode | null = null;
   private masterGainNode: GainNode | null = null;
@@ -16,8 +16,10 @@ class MusicSynthesizerEngine {
   private audioSourceNode: MediaElementAudioSourceNode | null = null;
 
   private init() {
+    if (typeof window === 'undefined') return;
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
       this.ctx = new AudioCtx();
       this.masterGainNode = this.ctx.createGain();
       this.duckingGainNode = this.ctx.createGain();
@@ -25,7 +27,7 @@ class MusicSynthesizerEngine {
       this.duckingGainNode.connect(this.masterGainNode);
       this.masterGainNode.connect(this.ctx.destination);
     }
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
@@ -91,7 +93,7 @@ class MusicSynthesizerEngine {
     const intervalMs = (60 / this.bpm / 4) * 1000; // 16th note interval
     const chords = this.getScaleForMood(mood);
 
-    this.timerId = window.setInterval(() => {
+    this.timerId = setInterval(() => {
       if (!this.ctx || !this.isPlaying || !this.duckingGainNode) return;
       const now = this.ctx.currentTime;
 
