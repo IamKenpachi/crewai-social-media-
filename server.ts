@@ -1524,17 +1524,19 @@ Return strictly JSON conforming to the schema.`;
         if (lyriaAudioBase64) {
           musicOutput.audio_url = `data:${lyriaMimeType};base64,${lyriaAudioBase64}`;
           musicOutput.is_lyria_generated = true;
-          musicOutput.lyrics = lyriaLyrics;
+          musicOutput.lyrics = lyriaLyrics || musicOutput.lyrics || (Array.isArray(musicOutput.lyrics_progression) ? musicOutput.lyrics_progression.map((l: any) => l.text).join('\n') : '');
           musicOutput.frames_analyzed = framesConditionedCount;
         } else {
           musicOutput.audio_url = '/audio/ambient-beat.mp3';
           musicOutput.is_lyria_generated = false;
+          musicOutput.lyrics = musicOutput.lyrics || (Array.isArray(musicOutput.lyrics_progression) ? musicOutput.lyrics_progression.map((l: any) => l.text).join('\n') : '');
           musicOutput.frames_analyzed = framesConditionedCount;
         }
       } catch (lyriaError: any) {
         console.warn('Lyria live streaming note (falling back to ambient player):', lyriaError?.message || lyriaError);
         musicOutput.audio_url = '/audio/ambient-beat.mp3';
         musicOutput.is_lyria_generated = false;
+        musicOutput.lyrics = musicOutput.lyrics || (Array.isArray(musicOutput.lyrics_progression) ? musicOutput.lyrics_progression.map((l: any) => l.text).join('\n') : '');
         musicOutput.frames_analyzed = framesConditionedCount;
       }
 
