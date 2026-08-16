@@ -104,11 +104,6 @@ function generateProceduralThumbnailUrl(
   variantType: 'EMOTION_FACE' | 'CURIOSITY_GAP' | 'MINIMAL_PUNCH' = 'CURIOSITY_GAP',
   focalHighlightText?: string
 ): string {
-  // If we have a source image or AI generated image, return it directly!
-  if (sourceImageBase64) {
-    return sourceImageBase64;
-  }
-
   const isVertical = aspect === '9:16';
   const width = isVertical ? 720 : 1280;
   const height = isVertical ? 1280 : 720;
@@ -116,8 +111,12 @@ function generateProceduralThumbnailUrl(
   
   const rawText = headlineText || title || 'VIRAL MASTER';
   const words = rawText.trim().split(/\s+/);
-  const hookWords = words.length > 4 ? words.slice(0, 4).join(' ') : rawText;
+  const hookWords = words.length > 5 ? words.slice(0, 5).join(' ') : rawText;
   const displayHook = hookWords.toUpperCase();
+
+  const imageEmbed = (sourceImageBase64 && sourceImageBase64.startsWith('data:image'))
+    ? `<image href="${sourceImageBase64}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice" opacity="0.82" />`
+    : `<rect width="${width}" height="${height}" fill="url(#bgGrad)" />`;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <defs>
@@ -126,14 +125,41 @@ function generateProceduralThumbnailUrl(
         <stop offset="50%" stop-color="#111827" />
         <stop offset="100%" stop-color="#1e1b4b" />
       </linearGradient>
+      <linearGradient id="overlayGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.8" />
+        <stop offset="35%" stop-color="#000000" stop-opacity="0.15" />
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.35" />
+        <stop offset="100%" stop-color="#000000" stop-opacity="0.85" />
+      </linearGradient>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
     </defs>
-    <rect width="${width}" height="${height}" fill="url(#bgGrad)" />
-    <circle cx="${width * 0.5}" cy="${height * 0.45}" r="${width * 0.35}" fill="${accentColor}" fill-opacity="0.18" filter="blur(40px)"/>
-    <g transform="translate(${width / 2}, ${height * 0.48})">
-      <text x="0" y="0" font-family="Impact, Montserrat, Arial Black, sans-serif" font-weight="900" font-size="${isVertical ? 48 : 58}" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">
+    ${imageEmbed}
+    <rect width="${width}" height="${height}" fill="url(#overlayGrad)" />
+    <circle cx="${width * 0.5}" cy="${height * 0.4}" r="${width * 0.35}" fill="${accentColor}" fill-opacity="0.2" filter="blur(40px)"/>
+    
+    <!-- Urgency Sub-Badge Pill -->
+    <g transform="translate(${width / 2}, ${isVertical ? 85 : 65})">
+      <rect x="-105" y="-20" width="210" height="40" rx="20" fill="#000000" fill-opacity="0.85" stroke="${accentColor}" stroke-width="2" />
+      <text x="0" y="6" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="${isVertical ? 16 : 18}" fill="${accentColor}" text-anchor="middle" letter-spacing="2">
+        ${(subBadge || '★ MUST WATCH').toUpperCase()}
+      </text>
+    </g>
+
+    <!-- Bold 3D In-Image Typography Hook -->
+    <g transform="translate(${width / 2}, ${isVertical ? height * 0.48 : height * 0.52})">
+      <text x="3" y="3" font-family="Impact, Montserrat, Arial Black, sans-serif" font-weight="900" font-size="${isVertical ? 50 : 60}" fill="#000000" text-anchor="middle" letter-spacing="1.5">
         ${displayHook}
       </text>
-      <text x="0" y="52" font-family="system-ui, sans-serif" font-weight="700" font-size="${isVertical ? 22 : 26}" fill="${accentColor}" text-anchor="middle" letter-spacing="2">
+      <text x="0" y="0" font-family="Impact, Montserrat, Arial Black, sans-serif" font-weight="900" font-size="${isVertical ? 50 : 60}" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">
+        ${displayHook}
+      </text>
+      <text x="0" y="55" font-family="system-ui, sans-serif" font-weight="800" font-size="${isVertical ? 20 : 24}" fill="${accentColor}" text-anchor="middle" letter-spacing="3" filter="url(#glow)">
         ${(mood || 'CINEMATIC SHORT').toUpperCase()}
       </text>
     </g>
@@ -1726,48 +1752,71 @@ app.post('/api/generate-thumbnail', async (req, res) => {
     const ai = getGeminiClient(customKey);
     let thumbnailUrl = '';
 
+    // Strategy 1: Try Imagen 3 Image Generation via Google GenAI SDK
     try {
-      const imgParts: any[] = [];
-      if (sourceFrame && sourceFrame.includes('base64,')) {
-        const match = sourceFrame.match(/^data:([^;]+);base64,(.+)$/);
-        if (match) {
-          imgParts.push({
-            inlineData: {
-              mimeType: match[1],
-              data: match[2]
-            }
-          });
-        }
-      }
-      
-      const fullPrompt = sourceFrame
-        ? `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, high-CTR, and visually stunning. ${prompt}. Aspect ratio: ${aspectRatio}.`
-        : `YouTube thumbnail, ${aspectRatio} aspect ratio, high contrast, cinematic: ${prompt}`;
-
-      imgParts.push({ text: fullPrompt });
-
-      const imgResp = await ai.models.generateContent({
-        model: 'gemini-3-pro-image',
-        contents: {
-          parts: imgParts
-        },
+      const imgGenResp = await (ai.models as any).generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt: `High-CTR YouTube Shorts thumbnail, 8k cinematic photography, ${aspectRatio} aspect ratio, dramatic lighting: ${prompt}`,
         config: {
-          imageConfig: {
-            aspectRatio: aspectRatio as '9:16' | '16:9'
-          }
+          numberOfImages: 1,
+          aspectRatio: aspectRatio === '16:9' ? '16:9' : '9:16',
+          outputMimeType: 'image/jpeg'
         }
       });
 
-      for (const part of imgResp.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData?.data) {
-          thumbnailUrl = `data:image/png;base64,${part.inlineData.data}`;
-          break;
-        }
+      if (imgGenResp?.generatedImages?.[0]?.image?.imageBytes) {
+        thumbnailUrl = `data:image/jpeg;base64,${imgGenResp.generatedImages[0].image.imageBytes}`;
       }
-    } catch (e) {
-      console.warn('Endpoint /api/generate-thumbnail gemini-3-pro-image error:', e);
+    } catch (imagenErr: any) {
+      console.warn('Imagen 3 fallback:', imagenErr?.message);
     }
 
+    // Strategy 2: Try multimodal gemini-3-pro-image if Imagen 3 wasn't available
+    if (!thumbnailUrl) {
+      try {
+        const imgParts: any[] = [];
+        if (sourceFrame && sourceFrame.includes('base64,')) {
+          const match = sourceFrame.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            imgParts.push({
+              inlineData: {
+                mimeType: match[1],
+                data: match[2]
+              }
+            });
+          }
+        }
+        
+        const fullPrompt = sourceFrame
+          ? `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, high-CTR, and visually stunning. ${prompt}. Aspect ratio: ${aspectRatio}.`
+          : `YouTube thumbnail, ${aspectRatio} aspect ratio, high contrast, cinematic: ${prompt}`;
+
+        imgParts.push({ text: fullPrompt });
+
+        const imgResp = await ai.models.generateContent({
+          model: 'gemini-3-pro-image',
+          contents: {
+            parts: imgParts
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: aspectRatio as '9:16' | '16:9'
+            }
+          }
+        });
+
+        for (const part of imgResp.candidates?.[0]?.content?.parts || []) {
+          if (part.inlineData?.data) {
+            thumbnailUrl = `data:image/png;base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+      } catch (e: any) {
+        console.warn('gemini-3-pro-image fallback:', e?.message);
+      }
+    }
+
+    // Strategy 3: Dynamic high-CTR procedural composite with bold typography & accent glow
     if (!thumbnailUrl) {
       thumbnailUrl = generateProceduralThumbnailUrl(
         title, 
@@ -1776,7 +1825,7 @@ app.post('/api/generate-thumbnail', async (req, res) => {
         aspectRatio as '9:16' | '16:9',
         sourceFrame,
         subBadge,
-        headlineText
+        headlineText || title
       );
     }
 

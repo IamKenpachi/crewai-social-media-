@@ -743,16 +743,20 @@ export default function App() {
       });
       const data = await resp.json();
       if (data.success && data.thumbnailUrl && bundle) {
+        const newThumb = data.thumbnailUrl;
         setBundle({
           ...bundle,
           thumbnail_metadata: {
             ...bundle.thumbnail_metadata,
-            thumbnail_url: data.thumbnailUrl,
+            thumbnail_url: newThumb,
             prompt_used: prompt,
             aspect_ratio: aspect,
             headline_overlay: headlineText || bundle.thumbnail_metadata?.headline_overlay,
             sub_badge: subBadge || bundle.thumbnail_metadata?.sub_badge,
             color_accent: colorAccent || bundle.thumbnail_metadata?.color_accent,
+            variants: bundle.thumbnail_metadata?.variants && bundle.thumbnail_metadata.variants.length > 0
+              ? bundle.thumbnail_metadata.variants.map((v, i) => (i === 0 ? { ...v, thumbnail_url: newThumb, prompt_used: prompt } : v))
+              : [{ id: 'var-0', variant_type: 'CURIOSITY_GAP', title: 'Custom Render', concept_description: prompt, thumbnail_url: newThumb, prompt_used: prompt, headline_overlay: headlineText, sub_badge: subBadge, color_accent: colorAccent, ctr_prediction: 18.5 }]
           }
         });
       }

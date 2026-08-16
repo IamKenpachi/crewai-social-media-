@@ -247,7 +247,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
 
   // Sync active thumbnail when bundle updates
   useEffect(() => {
-    const rawThumb = bundle.thumbnail_metadata?.variants?.[selectedVariantIndex]?.thumbnail_url || bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url || '';
+    const rawThumb = bundle.thumbnail_metadata?.thumbnail_url || bundle.thumbnail_metadata?.variants?.[selectedVariantIndex]?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url || '';
     setActiveThumbnailUrl(rawThumb);
   }, [selectedVariantIndex, bundle]);
 
