@@ -189,10 +189,15 @@ Execute the granular 2026 Multimodal Scene Ingestion Process:
      * Clip 1: "The Curiosity Hook / Pattern Interrupt" (High 0-3s retention, opening mystery)
      * Clip 2: "The High-Energy Climax / Visual Drop" (Peak motion, dramatic beat drop)
      * Clip 3: "The Punchy Conclusion & Infinite Loop" (Clear takeaway, seamless replay hook)
-   - Assign each clip a Virality Score (80-99/100) and a 5-Pillar Breakdown (hook_strength, visual_climax, topic_novelty, audio_sync, loop_continuity: each 0-100).
-   - Provide retention tactics and "why_viral_reasoning".
-4. KARAOKE SUBTITLE TIMING (Submagic Intelligence):
-   - Generate 3-5 synchronized subtitle lines with exact start/end millisecond timestamps (0ms to 15000ms), word arrays with start_ms/end_ms, and relevant viral emojis (e.g. ⚡, 🔥, 🤯, 🚀, ⚠️).
+   - Assign each clip a Virality Score (80-99/100) and a 5-Pillar Breakdown (hook_strength, visual_climax, topic_novelty, audio_sync, loop_continuity: each 0-100)
+4. SYNCHRONIZED SONG LYRICS (Music Video Lyric Intelligence):
+   - Generate 4 to 6 SHORT, rhythmic, poetic song lyrics that sing along with the music track (matching the visual theme, e.g. dress design, summer vibes, fashion rhythm). NEVER write generic meme POV text like "POV: YOU FOUND THE PERFECT DRESS".
+   - Break into short 2.5-second lines (max 3-5 words per line) so lyrics cycle rapidly with the beat:
+     * Line 1 (0ms - 2800ms): "Spinning in red under summer sun" (emoji: 💃)
+     * Line 2 (2800ms - 5600ms): "Catching the rhythm having fun" (emoji: ✨)
+     * Line 3 (5600ms - 8400ms): "Polka dot style in the coastal breeze" (emoji: 🌴)
+     * Line 4 (8400ms - 11800ms): "Moments of beauty you can feel with ease" (emoji: 🌟)
+   - Include word-level timestamps (start_ms to end_ms) for every word so they bounce on each syllable.
 
 Return a structured JSON object strictly conforming to the requested schema.`;
 

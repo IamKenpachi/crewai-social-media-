@@ -175,12 +175,18 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [isEditingSubtitles, setIsEditingSubtitles] = useState<boolean>(false);
 
-  // Sync current subtitles when switching clips
+  // Sync current subtitles when switching clips (only if valid multi-line lyrics exist)
   useEffect(() => {
-    if (activeClip && activeClip.subtitles && activeClip.subtitles.length > 0) {
+    if (bundle.music_metadata?.lyrics_progression && bundle.music_metadata.lyrics_progression.length > 0) {
+      setCurrentSubtitles(bundle.music_metadata.lyrics_progression);
+    } else if (activeClip?.subtitles && activeClip.subtitles.length > 1) {
       setCurrentSubtitles(activeClip.subtitles);
+    } else if (bundle.subtitles && bundle.subtitles.length > 1) {
+      setCurrentSubtitles(bundle.subtitles);
+    } else {
+      setCurrentSubtitles(defaultSongLyrics);
     }
-  }, [selectedClipId, activeClip]);
+  }, [selectedClipId, activeClip, bundle]);
 
   // Audio ducking & soundtrack player state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
