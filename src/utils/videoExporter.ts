@@ -272,34 +272,13 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
 
       // Draw Burned-in Animated Subtitles
       if (options.subtitles && options.subtitles.length > 0) {
+        const lastLyricEndMs = Math.max(...options.subtitles.map((l) => l.end_ms), 11800);
+        // Synchronize with continuous loop so lyrics stay active across the full song duration
+        const loopElapsed = elapsed % lastLyricEndMs;
+
         const currentLine = options.subtitles.find(
-          (line) => elapsed >= line.start_ms && elapsed <= line.end_ms
-        ) || (elapsed < options.subtitles[0].start_ms ? options.subtitles[0] : options.subtitles[options.subtitles.length - 1]);
-
-        // Draw top live music lyrics header during export
-        if (currentLine && currentLine.words && currentLine.words.length > 0) {
-          ctx.save();
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-          ctx.beginPath();
-          ctx.roundRect(32, 32, width - 64, 60, 16);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#FACC15';
-          ctx.font = '900 22px system-ui, -apple-system, sans-serif';
-          ctx.fillText('🎵 LYRICS:', 50, 62);
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '700 22px system-ui, -apple-system, sans-serif';
-          const lineStr = `"${currentLine.words.map(w => w.text).join(' ')}"`;
-          const displayStr = lineStr.length > 36 ? lineStr.substring(0, 34) + '..."' : lineStr;
-          ctx.fillText(displayStr, 175, 62);
-          ctx.restore();
-        }
+          (line) => loopElapsed >= line.start_ms && loopElapsed <= line.end_ms
+        ) || options.subtitles[Math.floor((loopElapsed / 2800) % options.subtitles.length)] || options.subtitles[0];
 
         if (currentLine && currentLine.words && currentLine.words.length > 0) {
           const style = options.subtitleStyle || 'hormozi';
@@ -340,8 +319,7 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
           let currentX = (width - totalWidth) / 2;
 
           currentLine.words.forEach((word, idx) => {
-            const isActive = elapsed >= word.start_ms && elapsed <= word.end_ms;
-            const wordSpacing = ' ' + word.text;
+            const isActive = loopElapsed >= word.start_ms && loopElapsed <= word.end_ms;
             const wordWidth = ctx.measureText(word.text).width;
             const spaceWidth = ctx.measureText(' ').width;
 
@@ -401,8 +379,8 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
           // Draw emoji if present
           if (currentLine.emoji) {
             ctx.save();
-            ctx.font = '48px system-ui, sans-serif';
-            ctx.fillText(currentLine.emoji, currentX, subY);
+            ctx.font = '48px Apple Color Emoji, Segoe UI Emoji, sans-serif';
+            ctx.fillText(currentLine.emoji, currentX, subY + 2);
             ctx.restore();
           }
 
