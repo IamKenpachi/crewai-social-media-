@@ -7,6 +7,7 @@ interface SubtitleOverlayProps {
   currentTimeMs: number;
   stylePreset: SubtitleStylePreset;
   aspectRatio?: '9:16' | '16:9';
+  position?: 'top' | 'bottom';
   onUpdateLine?: (lineId: string, newText: string, emoji?: string) => void;
 }
 
@@ -15,6 +16,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   currentTimeMs,
   stylePreset = 'hormozi',
   aspectRatio = '9:16',
+  position = 'bottom',
   onUpdateLine
 }) => {
   if (!subtitles || subtitles.length === 0) return null;
@@ -168,7 +170,9 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   return (
     <div
       className={`absolute left-0 right-0 z-30 pointer-events-none flex items-center justify-center ${
-        isVertical ? 'bottom-20' : 'bottom-12'
+        position === 'top' 
+          ? (isVertical ? 'top-14' : 'top-10')
+          : (isVertical ? 'bottom-20' : 'bottom-12')
       }`}
     >
       <div className="max-w-[90%]">

@@ -101,6 +101,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
 
   // Subtitle Studio State (Submagic Intelligence)
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStylePreset>(bundle.subtitle_style || 'hormozi');
+  const [subtitlePosition, setSubtitlePosition] = useState<'top' | 'bottom'>('top');
   const [currentSubtitles, setCurrentSubtitles] = useState<SubtitleLine[]>(activeClip.subtitles || bundle.subtitles || []);
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [isEditingSubtitles, setIsEditingSubtitles] = useState<boolean>(false);
@@ -255,6 +256,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
         filename: 'shorts_with_ai_soundtrack.mp4',
         subtitles: currentSubtitles,
         subtitleStyle: subtitleStyle,
+        subtitlePosition: subtitlePosition,
         onProgress: (pct, msg) => {
           setExportProgress(pct);
           setExportStatusMessage(msg);
@@ -517,16 +519,22 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                   currentTimeMs={currentTimeMs}
                   stylePreset={subtitleStyle}
                   aspectRatio="9:16"
+                  position={subtitlePosition}
                   onUpdateLine={handleUpdateSubtitleLine}
                 />
 
-                {/* Video Watermark & Active Indicator */}
-                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-bold text-white flex items-center gap-1.5 pointer-events-none">
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>{activeClip.title}</span>
+                {/* Video Top Header: Live Music Lyrics & Vocal Hook (Replaces the Title) */}
+                <div className="absolute top-3 left-3 right-16 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-white/20 text-xs font-bold text-white flex items-center gap-2 pointer-events-none shadow-md z-20 overflow-hidden text-ellipsis whitespace-nowrap">
+                  <Music className="w-3.5 h-3.5 text-pink-400 shrink-0 animate-pulse" />
+                  <span className="text-yellow-300 font-mono font-black shrink-0 text-[10px]">LYRICS:</span>
+                  <span className="truncate text-slate-100 font-medium tracking-wide">
+                    {currentSubtitles.find(l => currentTimeMs >= l.start_ms && currentTimeMs <= l.end_ms)?.text 
+                      ? `"${currentSubtitles.find(l => currentTimeMs >= l.start_ms && currentTimeMs <= l.end_ms)?.text}"` 
+                      : (bundle.music_metadata?.lyrics || bundle.music_metadata?.genre || '♫ Dynamic Sound & Vocal Hook')}
+                  </span>
                 </div>
 
-                <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-mono font-bold text-emerald-400 flex items-center gap-1 pointer-events-none">
+                <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-mono font-bold text-emerald-400 flex items-center gap-1 pointer-events-none z-20">
                   <span>★ {activeClip.virality_score}</span>
                 </div>
 
@@ -545,20 +553,49 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 </button>
               </div>
 
-              {/* Submagic Subtitle Style Preset Selector */}
+              {/* Submagic Subtitle Style Preset Selector & Position Controls */}
               <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <TypeIcon className="w-4 h-4 text-blue-600" />
-                    <span>Subtitle Animation Style Preset:</span>
+                    <span>Subtitle Animation &amp; Lyrics Position:</span>
                   </span>
-                  <button
-                    onClick={() => setIsEditingSubtitles(!isEditingSubtitles)}
-                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>{isEditingSubtitles ? 'Close Editor' : 'Edit Captions Text'}</span>
-                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Position Toggle: Top vs Bottom */}
+                    <div className="flex items-center bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setSubtitlePosition('top')}
+                        className={`px-2 py-1 text-[10px] font-bold rounded cursor-pointer transition-all ${
+                          subtitlePosition === 'top' 
+                            ? 'bg-blue-600 text-white shadow-2xs' 
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                        }`}
+                      >
+                        Top Screen
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSubtitlePosition('bottom')}
+                        className={`px-2 py-1 text-[10px] font-bold rounded cursor-pointer transition-all ${
+                          subtitlePosition === 'bottom' 
+                            ? 'bg-blue-600 text-white shadow-2xs' 
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                        }`}
+                      >
+                        Bottom Screen
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => setIsEditingSubtitles(!isEditingSubtitles)}
+                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 cursor-pointer ml-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>{isEditingSubtitles ? 'Close' : 'Edit Lyrics'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

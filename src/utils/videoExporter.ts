@@ -11,6 +11,7 @@ export interface VideoExportOptions {
   filename?: string;
   subtitles?: SubtitleLine[];
   subtitleStyle?: SubtitleStylePreset;
+  subtitlePosition?: 'top' | 'bottom';
   onProgress?: (progressPercent: number, statusMessage: string) => void;
 }
 
@@ -275,9 +276,34 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
           (line) => elapsed >= line.start_ms && elapsed <= line.end_ms
         ) || (elapsed < options.subtitles[0].start_ms ? options.subtitles[0] : options.subtitles[options.subtitles.length - 1]);
 
+        // Draw top live music lyrics header during export
+        if (currentLine && currentLine.words && currentLine.words.length > 0) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          ctx.beginPath();
+          ctx.roundRect(32, 32, width - 64, 60, 16);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#FACC15';
+          ctx.font = '900 22px system-ui, -apple-system, sans-serif';
+          ctx.fillText('🎵 LYRICS:', 50, 62);
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '700 22px system-ui, -apple-system, sans-serif';
+          const lineStr = `"${currentLine.words.map(w => w.text).join(' ')}"`;
+          const displayStr = lineStr.length > 36 ? lineStr.substring(0, 34) + '..."' : lineStr;
+          ctx.fillText(displayStr, 175, 62);
+          ctx.restore();
+        }
+
         if (currentLine && currentLine.words && currentLine.words.length > 0) {
           const style = options.subtitleStyle || 'hormozi';
-          const subY = height - 260;
+          const subY = options.subtitlePosition === 'top' ? 220 : height - 260;
 
           ctx.save();
           ctx.textAlign = 'center';
