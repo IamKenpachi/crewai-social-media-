@@ -1,0 +1,6 @@
+{
+  "name": "CrewAI Media Pipeline Studio",
+  "description": "Production-grade multi-agent media studio powered by CrewAI, Gemini Multimodal Video Analysis, Lyria Audio, and Imagen Thumbnails.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
