@@ -135,9 +135,11 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     (bundle.thumbnail_metadata?.variants?.[0]?.variant_type as any) || 'CURIOSITY_GAP'
   );
   const [headlineText, setHeadlineText] = useState<string>(bundle.thumbnail_metadata?.headline_overlay || 'SECRET REVEALED ⚡');
+  const [subHeadlineText, setSubHeadlineText] = useState<string>('');
   const [subBadge, setSubBadge] = useState<string>(bundle.thumbnail_metadata?.sub_badge || '★ MUST WATCH');
   const [colorAccent, setColorAccent] = useState<string>(bundle.thumbnail_metadata?.color_accent || '#FACC15');
   const [showGraphicOverlay, setShowGraphicOverlay] = useState<boolean>(false);
+  const [showDoodleArrows, setShowDoodleArrows] = useState<boolean>(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -156,26 +158,28 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     }
   };
 
-  // Sync active thumbnail when bundle updates
+  // Sync active thumbnail when bundle updates or settings change
   useEffect(() => {
     const rawThumb = bundle.thumbnail_metadata?.variants?.[selectedVariantIndex]?.thumbnail_url || bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url || '';
     if (showGraphicOverlay) {
       const clientSvg = generateClientThumbnailSvg({
         title: bundle.creative_brief?.summary || 'VIRAL SHORT',
         headlineText,
+        subHeadlineText,
         subBadge,
         mood: bundle.creative_brief?.mood_and_tone,
         colorAccent,
         aspect: thumbAspect,
         sourceImageBase64: rawThumb,
         variantType,
-        showOverlay: true
+        showOverlay: true,
+        showDoodleArrows
       });
       setActiveThumbnailUrl(clientSvg);
     } else {
       setActiveThumbnailUrl(rawThumb);
     }
-  }, [showGraphicOverlay, headlineText, subBadge, colorAccent, thumbAspect, variantType, selectedVariantIndex, bundle]);
+  }, [showGraphicOverlay, showDoodleArrows, headlineText, subHeadlineText, subBadge, colorAccent, thumbAspect, variantType, selectedVariantIndex, bundle]);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -825,14 +829,16 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 </div>
               </div>
 
-              {/* Creative AI Prompt Box & Regeneration */}
-              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              {/* Creative AI Prompt Box & gemini-3-pro-image Regeneration */}
+              <div className="flex flex-col gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <Wand2 className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Creative AI Prompt (Full Artistic Freedom):</span>
+                    <span>AI Image Prompt (<span className="font-mono text-amber-600 dark:text-amber-400">gemini-3-pro-image</span>):</span>
                   </label>
-                  <span className="text-[10px] text-slate-400">Edit or refine prompt</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-bold">
+                    8K Cinematic • 3D Rim Lights
+                  </span>
                 </div>
                 <textarea
                   value={customThumbPrompt}
@@ -842,29 +848,74 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 />
                 
                 <div className="flex items-center justify-between pt-1">
-                  <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showGraphicOverlay}
-                      onChange={(e) => setShowGraphicOverlay(e.target.checked)}
-                      className="rounded text-amber-500 focus:ring-amber-400"
-                    />
-                    <span>Overlay headline text badge (Optional)</span>
-                  </label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showGraphicOverlay}
+                        onChange={(e) => setShowGraphicOverlay(e.target.checked)}
+                        className="rounded text-amber-500 focus:ring-amber-400"
+                      />
+                      <span>Top Typography Overlay</span>
+                    </label>
+
+                    {showGraphicOverlay && (
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer animate-in fade-in">
+                        <input
+                          type="checkbox"
+                          checked={showDoodleArrows}
+                          onChange={(e) => setShowDoodleArrows(e.target.checked)}
+                          className="rounded text-amber-500 focus:ring-amber-400"
+                        />
+                        <span>Doodle Arrows (↓↓↓)</span>
+                      </label>
+                    )}
+                  </div>
 
                   <button
                     onClick={handleTriggerRegenerateThumbnail}
                     disabled={isRegeneratingThumbnail}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-slate-950 text-xs font-black transition-all shadow-xs cursor-pointer"
                   >
                     {isRegeneratingThumbnail ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     ) : (
                       <Sparkles className="w-3.5 h-3.5" />
                     )}
-                    <span>{isRegeneratingThumbnail ? 'Generating with Gemini...' : 'Generate New AI Thumbnail'}</span>
+                    <span>{isRegeneratingThumbnail ? 'Rendering with gemini-3-pro-image...' : 'Generate with gemini-3-pro-image'}</span>
                   </button>
                 </div>
+
+                {/* Optional 2-Tone Stacked Typography Customizer */}
+                {showGraphicOverlay && (
+                  <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 animate-in fade-in">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Top 2-Tone Stacked Typography:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block mb-0.5">Line 1 (Accent Color):</span>
+                        <input
+                          type="text"
+                          value={headlineText}
+                          onChange={(e) => setHeadlineText(e.target.value)}
+                          placeholder="e.g. PASSIVE or SECRET"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block mb-0.5">Line 2 (White Contrast):</span>
+                        <input
+                          type="text"
+                          value={subHeadlineText}
+                          onChange={(e) => setSubHeadlineText(e.target.value)}
+                          placeholder="e.g. INCOME IDEAS"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
