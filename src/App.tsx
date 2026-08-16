@@ -8,8 +8,42 @@ import { ArchitectureGuide } from './components/ArchitectureGuide';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { ProjectHistoryModal } from './components/ProjectHistoryModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { MediaPackageOutput, AgentLogEntry, SampleMedia, SavedProject } from './types';
+import { Package, History, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+// Sanitize bundle to avoid browser LocalStorage quota limits (strip massive raw video base64 payloads)
+function sanitizeBundleForStorage(bundle: MediaPackageOutput): MediaPackageOutput {
+  const sanitized = { ...bundle };
+  if (sanitized.raw_media_url && sanitized.raw_media_url.startsWith('data:video/')) {
+    sanitized.raw_media_url = '';
+  }
+  if (sanitized.final_video_path && sanitized.final_video_path.startsWith('data:video/')) {
+    sanitized.final_video_path = '';
+  }
+  if (sanitized.poster_frame && sanitized.poster_frame.length > 80000) {
+    sanitized.poster_frame = '';
+  }
+  return sanitized;
+}
+
+// Safe LocalStorage saver with automatic quota fallback trimming
+function safeSaveProjects(projects: SavedProject[]): boolean {
+  try {
+    localStorage.setItem('crewai_saved_projects', JSON.stringify(projects));
+    return true;
+  } catch (e) {
+    console.warn('LocalStorage quota limit reached, trimming older runs:', e);
+    try {
+      const trimmed = projects.slice(0, 3);
+      localStorage.setItem('crewai_saved_projects', JSON.stringify(trimmed));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'studio' | 'dag' | 'deliverables' | 'code' | 'guide'>('studio');
@@ -62,38 +96,62 @@ export default function App() {
 
   const handleSaveCurrentProject = () => {
     if (!bundle) return;
-    const newProject: SavedProject = {
-      id: `proj_${Date.now()}`,
-      name: bundle.creative_brief?.summary?.substring(0, 36) || 'Untitled Production Run',
-      savedAt: new Date().toISOString(),
-      thumbnailUrl: bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || '',
-      bundle: bundle,
-      model: selectedModel,
-      viralityScore: bundle.clips?.[0]?.virality_score || 96
-    };
+    try {
+      const sanitized = sanitizeBundleForStorage(bundle);
+      const newProject: SavedProject = {
+        id: `proj_${Date.now()}`,
+        name: bundle.creative_brief?.summary?.substring(0, 36) || 'Untitled Production Run',
+        savedAt: new Date().toISOString(),
+        thumbnailUrl: bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || '',
+        bundle: sanitized,
+        model: selectedModel,
+        viralityScore: bundle.clips?.[0]?.virality_score || 96
+      };
 
-    setSavedProjects(prev => {
-      const updated = [newProject, ...prev];
-      localStorage.setItem('crewai_saved_projects', JSON.stringify(updated));
-      return updated;
-    });
+      setSavedProjects(prev => {
+        const updated = [newProject, ...prev];
+        safeSaveProjects(updated);
+        return updated;
+      });
 
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.6 }
-    });
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+    } catch (err) {
+      console.error('Failed to save project:', err);
+    }
   };
 
   const handleLoadProject = (project: SavedProject) => {
-    setBundle(project.bundle);
-    setActiveTab('deliverables');
+    if (!project || !project.bundle) return;
+    try {
+      const loadedBundle: MediaPackageOutput = {
+        ...project.bundle,
+        clips: project.bundle.clips && project.bundle.clips.length > 0 ? project.bundle.clips : [],
+        subtitles: project.bundle.subtitles || [],
+        execution_metrics: project.bundle.execution_metrics || {
+          total_duration_ms: 3200,
+          phase1_ms: 800,
+          phase2_ms: 1800,
+          phase3_ms: 600,
+          estimated_tokens: 2800,
+          parallel_speedup_factor: 2.8,
+          latency_saved_percent: 64,
+        }
+      };
+      setBundle(loadedBundle);
+      setActiveTab('deliverables');
+    } catch (err) {
+      console.error('Failed to load project bundle:', err);
+    }
   };
 
   const handleDeleteProject = (projectId: string) => {
     setSavedProjects(prev => {
       const updated = prev.filter(p => p.id !== projectId);
-      localStorage.setItem('crewai_saved_projects', JSON.stringify(updated));
+      safeSaveProjects(updated);
       return updated;
     });
   };
@@ -752,51 +810,85 @@ export default function App() {
         hasCurrentBundle={!!bundle}
       />
 
-      {/* Main Studio Viewport */}
+      {/* Main Studio Viewport with Error Boundary */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        
-        {activeTab === 'studio' && (
-          <PipelineStudio
-            onRunPipeline={handleRunPipeline}
-            isRunning={isRunning}
-            currentPhase={currentPhase}
-            activeAgentId={activeAgentId}
-            logs={logs}
-            hasResults={!!bundle}
-            onViewResults={() => setActiveTab('deliverables')}
-            selectedModel={selectedModel}
-            onSelectModel={handleSelectModel}
-            onOpenApiSettings={() => setIsApiModalOpen(true)}
-            hasCustomKey={!!apiKey}
-          />
-        )}
+        <ErrorBoundary onReset={() => setActiveTab('studio')}>
+          {activeTab === 'studio' && (
+            <PipelineStudio
+              onRunPipeline={handleRunPipeline}
+              isRunning={isRunning}
+              currentPhase={currentPhase}
+              activeAgentId={activeAgentId}
+              logs={logs}
+              hasResults={!!bundle}
+              onViewResults={() => setActiveTab('deliverables')}
+              selectedModel={selectedModel}
+              onSelectModel={handleSelectModel}
+              onOpenApiSettings={() => setIsApiModalOpen(true)}
+              hasCustomKey={!!apiKey}
+            />
+          )}
 
-        {activeTab === 'dag' && (
-          <DagGraphViewer
-            currentPhase={currentPhase}
-            activeAgentId={activeAgentId}
-            logs={logs}
-            onSelectAgent={(agentId) => setActiveAgentId(agentId)}
-            apiKey={apiKey}
-          />
-        )}
+          {activeTab === 'dag' && (
+            <DagGraphViewer
+              currentPhase={currentPhase}
+              activeAgentId={activeAgentId}
+              logs={logs}
+              onSelectAgent={(agentId) => setActiveAgentId(agentId)}
+              apiKey={apiKey}
+            />
+          )}
 
-        {activeTab === 'deliverables' && bundle && (
-          <DeliverablesBundle
-            bundle={bundle}
-            onRegenerateThumbnail={handleRegenerateThumbnail}
-            isRegeneratingThumbnail={isRegeneratingThumbnail}
-          />
-        )}
+          {activeTab === 'deliverables' && (
+            bundle ? (
+              <DeliverablesBundle
+                bundle={bundle}
+                onRegenerateThumbnail={handleRegenerateThumbnail}
+                isRegeneratingThumbnail={isRegeneratingThumbnail}
+              />
+            ) : (
+              <div className="p-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-4 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <Package className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                    No Active Deliverables Generated Yet
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md leading-relaxed">
+                    Run the multi-agent pipeline in the Studio Runner or load a previous run from your history to view the output video, thumbnails, copy, and lyrics.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    onClick={() => setActiveTab('studio')}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Go to Studio Runner</span>
+                  </button>
+                  {savedProjects.length > 0 && (
+                    <button
+                      onClick={() => setIsHistoryOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                    >
+                      <History className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>Load Saved Run ({savedProjects.length})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          )}
 
-        {activeTab === 'code' && (
-          <CodeInspector />
-        )}
+          {activeTab === 'code' && (
+            <CodeInspector />
+          )}
 
-        {activeTab === 'guide' && (
-          <ArchitectureGuide />
-        )}
-
+          {activeTab === 'guide' && (
+            <ArchitectureGuide />
+          )}
+        </ErrorBoundary>
       </main>
 
     </div>
