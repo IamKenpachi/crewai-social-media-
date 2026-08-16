@@ -51,6 +51,7 @@ import { MediaPackageOutput, ExtractedClip, SubtitleLine, SubtitleStylePreset } 
 import { musicSynth } from '../utils/audioSynth';
 import { generateClientThumbnailSvg } from '../utils/thumbnailGenerator';
 import { exportVideoWithMusic, triggerFileDownload } from '../utils/videoExporter';
+import { parseLyriaLyricsToSubtitles } from '../utils/liricleParser';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import confetti from 'canvas-confetti';
 
@@ -160,14 +161,20 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     }
   ];
 
+  const parsedLyriaLyrics: SubtitleLine[] = bundle.music_metadata?.lyrics
+    ? parseLyriaLyricsToSubtitles(bundle.music_metadata.lyrics, bundle.music_metadata.duration_seconds || 27)
+    : [];
+
   const resolvedSubtitles: SubtitleLine[] = 
-    (bundle.music_metadata?.lyrics_progression && bundle.music_metadata.lyrics_progression.length > 0)
-      ? bundle.music_metadata.lyrics_progression
-      : (activeClip?.subtitles && activeClip.subtitles.length > 1)
-        ? activeClip.subtitles
-        : (bundle.subtitles && bundle.subtitles.length > 1)
-          ? bundle.subtitles
-          : defaultSongLyrics;
+    parsedLyriaLyrics.length > 0
+      ? parsedLyriaLyrics
+      : (bundle.music_metadata?.lyrics_progression && bundle.music_metadata.lyrics_progression.length > 0)
+        ? bundle.music_metadata.lyrics_progression
+        : (activeClip?.subtitles && activeClip.subtitles.length > 1)
+          ? activeClip.subtitles
+          : (bundle.subtitles && bundle.subtitles.length > 1)
+            ? bundle.subtitles
+            : defaultSongLyrics;
 
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStylePreset>(bundle.subtitle_style || 'hormozi');
   const [subtitlePosition, setSubtitlePosition] = useState<'top' | 'bottom'>('top');
@@ -175,8 +182,15 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [isEditingSubtitles, setIsEditingSubtitles] = useState<boolean>(false);
 
-  // Sync current subtitles when switching clips (only if valid multi-line lyrics exist)
+  // Sync current subtitles directly from Lyria song lyrics
   useEffect(() => {
+    if (bundle.music_metadata?.lyrics) {
+      const parsed = parseLyriaLyricsToSubtitles(bundle.music_metadata.lyrics, bundle.music_metadata.duration_seconds || 27);
+      if (parsed.length > 0) {
+        setCurrentSubtitles(parsed);
+        return;
+      }
+    }
     if (bundle.music_metadata?.lyrics_progression && bundle.music_metadata.lyrics_progression.length > 0) {
       setCurrentSubtitles(bundle.music_metadata.lyrics_progression);
     } else if (activeClip?.subtitles && activeClip.subtitles.length > 1) {

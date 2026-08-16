@@ -1616,6 +1616,52 @@ Return strictly JSON conforming to the schema.`;
     const sequentialEstimateMs = (t1 - t0) + (tiktokRes.log.durationMs || 1200) + (ytRes.log.durationMs || 1200) + (thumbRes.log.durationMs || 1400) + (audioRes.log.durationMs || 1100) + p3Duration + 320;
     const latencySavedPercent = Math.max(15, Math.round(((sequentialEstimateMs - totalLatencyMs) / sequentialEstimateMs) * 100));
 
+    const parseLyriaLyricsServer = (rawText: string, durationSec: number = 27) => {
+      if (!rawText || typeof rawText !== 'string' || !rawText.trim()) return [];
+      const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const emojiPool = ['☀️', '✨', '👗', '💫', '🎶', '🌸', '💃', '🌴', '🌟', '💖'];
+      const parsed: any[] = [];
+      const hasRange = lines.some(l => /^\[\d+(\.\d+)?:/.test(l));
+
+      if (hasRange) {
+        lines.forEach((line, idx) => {
+          const match = line.match(/^\[(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)\]\s*(.*)$/);
+          if (match) {
+            const startMs = Math.round(parseFloat(match[1]) * 1000);
+            const endMs = Math.round(parseFloat(match[2]) * 1000);
+            const text = match[3].trim();
+            if (text) {
+              const wordsList = text.split(/\s+/).filter(Boolean);
+              const dur = Math.max(800, endMs - startMs);
+              const wDur = dur / Math.max(1, wordsList.length);
+              const words = wordsList.map((w, wIdx) => ({
+                id: `w-${idx}-${wIdx}`,
+                text: w,
+                start_ms: Math.round(startMs + wIdx * wDur),
+                end_ms: Math.round(startMs + (wIdx + 1) * wDur)
+              }));
+              parsed.push({
+                id: `lyric-${idx + 1}`,
+                text,
+                start_ms: startMs,
+                end_ms: endMs,
+                emoji: emojiPool[idx % emojiPool.length],
+                words
+              });
+            }
+          }
+        });
+      }
+      return parsed;
+    };
+
+    const serverParsedLyrics = audioRes.output?.lyrics ? parseLyriaLyricsServer(audioRes.output.lyrics) : [];
+    const chosenSubtitles = serverParsedLyrics.length > 0
+      ? serverParsedLyrics
+      : (audioRes.output?.lyrics_progression && audioRes.output.lyrics_progression.length > 0)
+        ? audioRes.output.lyrics_progression
+        : (briefResult.extracted_clips?.[0]?.subtitles || []);
+
     const isImageSource = !videoUrl && !Array.isArray(videoFrames) && !!imageBase64;
     const finalBundle: any = {
       final_video_path: videoUrl || (isImageSource ? imageBase64 : './exports/final_video_with_lyria_music.mp4'),
@@ -1625,14 +1671,10 @@ Return strictly JSON conforming to the schema.`;
       creative_brief: briefResult,
       clips: (briefResult.extracted_clips || []).map((clip: any) => ({
         ...clip,
-        subtitles: (audioRes.output?.lyrics_progression && audioRes.output.lyrics_progression.length > 0)
-          ? audioRes.output.lyrics_progression
-          : clip.subtitles
+        subtitles: chosenSubtitles
       })),
       selected_clip_id: briefResult.extracted_clips?.[0]?.id || 'clip-1',
-      subtitles: (audioRes.output?.lyrics_progression && audioRes.output.lyrics_progression.length > 0)
-        ? audioRes.output.lyrics_progression
-        : (briefResult.extracted_clips?.[0]?.subtitles || []),
+      subtitles: chosenSubtitles,
       subtitle_style: 'hormozi',
       tiktok_metadata: tiktokRes.output,
       youtube_metadata: ytRes.output,
