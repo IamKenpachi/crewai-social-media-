@@ -24,7 +24,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   // Find the currently active line based on playback time
   const currentLine = subtitles.find(
     (line) => currentTimeMs >= line.start_ms && currentTimeMs <= line.end_ms
-  ) || (subtitles.length > 0 && currentTimeMs < subtitles[0].start_ms ? subtitles[0] : subtitles[subtitles.length - 1]);
+  ) || subtitles[Math.floor((currentTimeMs / 2800) % subtitles.length)] || subtitles[0];
 
   if (!currentLine) return null;
 

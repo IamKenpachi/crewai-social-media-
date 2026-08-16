@@ -99,10 +99,79 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
   const [selectedClipId, setSelectedClipId] = useState<string>(clips[0]?.id || 'clip-1');
   const activeClip = clips.find(c => c.id === selectedClipId) || clips[0];
 
-  // Subtitle Studio State (Submagic Intelligence)
+  // Subtitle Studio State (Playful Beat-Synced Lyrics)
+  const defaultSongLyrics: SubtitleLine[] = [
+    {
+      id: 'lyric-1',
+      text: 'Red dress spinning under summer light',
+      start_ms: 0,
+      end_ms: 2800,
+      emoji: '💃',
+      words: [
+        { id: 'w-1', text: 'Red', start_ms: 0, end_ms: 500 },
+        { id: 'w-2', text: 'dress', start_ms: 500, end_ms: 1000 },
+        { id: 'w-3', text: 'spinning', start_ms: 1000, end_ms: 1600 },
+        { id: 'w-4', text: 'under', start_ms: 1600, end_ms: 2000 },
+        { id: 'w-5', text: 'summer', start_ms: 2000, end_ms: 2400 },
+        { id: 'w-6', text: 'light', start_ms: 2400, end_ms: 2800 }
+      ]
+    },
+    {
+      id: 'lyric-2',
+      text: 'Polka dots moving pure delight',
+      start_ms: 2800,
+      end_ms: 5600,
+      emoji: '✨',
+      words: [
+        { id: 'w-7', text: 'Polka', start_ms: 2800, end_ms: 3400 },
+        { id: 'w-8', text: 'dots', start_ms: 3400, end_ms: 3900 },
+        { id: 'w-9', text: 'moving', start_ms: 3900, end_ms: 4500 },
+        { id: 'w-10', text: 'pure', start_ms: 4500, end_ms: 5000 },
+        { id: 'w-11', text: 'delight', start_ms: 5000, end_ms: 5600 }
+      ]
+    },
+    {
+      id: 'lyric-3',
+      text: 'Feel the rhythm catch the breeze',
+      start_ms: 5600,
+      end_ms: 8400,
+      emoji: '🌴',
+      words: [
+        { id: 'w-12', text: 'Feel', start_ms: 5600, end_ms: 6100 },
+        { id: 'w-13', text: 'the', start_ms: 6100, end_ms: 6500 },
+        { id: 'w-14', text: 'rhythm', start_ms: 6500, end_ms: 7100 },
+        { id: 'w-15', text: 'catch', start_ms: 7100, end_ms: 7600 },
+        { id: 'w-16', text: 'the', start_ms: 7600, end_ms: 8000 },
+        { id: 'w-17', text: 'breeze', start_ms: 8000, end_ms: 8400 }
+      ]
+    },
+    {
+      id: 'lyric-4',
+      text: 'Golden moments making memories',
+      start_ms: 8400,
+      end_ms: 11800,
+      emoji: '🌟',
+      words: [
+        { id: 'w-18', text: 'Golden', start_ms: 8400, end_ms: 9000 },
+        { id: 'w-19', text: 'moments', start_ms: 9000, end_ms: 9800 },
+        { id: 'w-20', text: 'making', start_ms: 9800, end_ms: 10600 },
+        { id: 'w-21', text: 'memories', start_ms: 10600, end_ms: 11800 }
+      ]
+    }
+  ];
+
+  const resolvedSubtitles: SubtitleLine[] = 
+    (bundle.music_metadata?.lyrics_progression && bundle.music_metadata.lyrics_progression.length > 0)
+      ? bundle.music_metadata.lyrics_progression
+      : (activeClip?.subtitles && activeClip.subtitles.length > 1)
+        ? activeClip.subtitles
+        : (bundle.subtitles && bundle.subtitles.length > 1)
+          ? bundle.subtitles
+          : defaultSongLyrics;
+
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStylePreset>(bundle.subtitle_style || 'hormozi');
   const [subtitlePosition, setSubtitlePosition] = useState<'top' | 'bottom'>('top');
-  const [currentSubtitles, setCurrentSubtitles] = useState<SubtitleLine[]>(activeClip.subtitles || bundle.subtitles || []);
+  const [currentSubtitles, setCurrentSubtitles] = useState<SubtitleLine[]>(resolvedSubtitles);
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [isEditingSubtitles, setIsEditingSubtitles] = useState<boolean>(false);
 
@@ -192,6 +261,30 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       setCurrentTimeMs(videoRef.current.currentTime * 1000);
     }
   };
+
+  // High-precision 60fps audio/video synchronization loop for real-time word-by-word lyrics
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+
+    let animId: number;
+    const startAudioTime = performance.now();
+    const clipDurationMs = (activeClip?.duration_seconds || 12) * 1000;
+
+    const syncLoop = () => {
+      if (videoRef.current && !videoRef.current.paused && videoRef.current.duration) {
+        setCurrentTimeMs(videoRef.current.currentTime * 1000);
+      } else {
+        const elapsed = (performance.now() - startAudioTime) % clipDurationMs;
+        setCurrentTimeMs(elapsed);
+      }
+      animId = requestAnimationFrame(syncLoop);
+    };
+
+    animId = requestAnimationFrame(syncLoop);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, activeClip]);
 
   useEffect(() => {
     if (isPlaying) {
