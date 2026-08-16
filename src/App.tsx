@@ -38,8 +38,10 @@ export default function App() {
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
     }
   }, [isDarkMode]);
 
@@ -342,7 +344,7 @@ export default function App() {
       },
       youtube_metadata: {
         title: 'I Built a Cyberpunk City in 4K 60FPS! 🔥 #Shorts',
-        description: 'Take a flight through the high-density holographic towers of Neo-Metropolis.\n\n⏱️ TIMESTAMPS:\n0:00 - High-Speed Dive\n0:06 - Holographic Plaza\n0:12 - Night Traffic Grid\n\n🎵 Soundtrack: Google Lyria Synthwave Track (128 BPM)\n🔔 Subscribe for daily futuristic render shorts!\n#Shorts #Cyberpunk #SciFi #VFX',
+        description: 'Take a flight through the high-density holographic towers of Neo-Metropolis.\n\n⏱️ TIMESTAMPS:\n0:00 - High-Speed Dive\n0:06 - Holographic Plaza\n0:12 - Night Traffic Grid\n\n🎵 Soundtrack: Lyria Synthwave Track (128 BPM)\n🔔 Subscribe for daily futuristic render shorts!\n#Shorts #Cyberpunk #SciFi #VFX',
         tags: ['shorts', 'cyberpunk', 'synthwave', 'sci-fi', 'futuristic', 'future tech', '4k 60fps', 'vfx', 'cgi render', 'trending'],
         chapters: [
           { time: '0:00', title: 'High-Speed Dive' },
@@ -545,7 +547,7 @@ export default function App() {
         role: 'Soundtrack & Sonic Producer',
         phase: 2,
         status: 'completed',
-        toolUsed: 'LyriaMusicGenTool (Google DeepMind Lyria)',
+        toolUsed: 'LyriaMusicGenTool',
         durationMs: 690,
         timestamp: '12:00:02',
         outputSummary: 'Composed Lyria soundtrack: Cyberpunk Synthwave @ 128 BPM.'
@@ -796,27 +798,6 @@ export default function App() {
         )}
 
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 px-4 text-xs text-slate-500 dark:text-slate-400 shrink-0 transition-colors">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800 dark:text-slate-200">CrewAI Media Production Studio</span>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
-            <span>Gemini 3.7 Flash • OpusClip Virality • Submagic Subtitles • Lyria Audio</span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400 font-medium">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Async Fan-Out Concurrency
-            </span>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
-            <span>Six-Slot Prompt Architecture</span>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
-            <span>FFmpeg Ducking</span>
-          </div>
-        </div>
-      </footer>
 
     </div>
   );

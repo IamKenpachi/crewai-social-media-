@@ -107,11 +107,11 @@ const DEFAULT_AGENTS: CustomAgentConfig[] = [
     role: 'Sonic Branding & Audio Synchronization Maestro',
     goal: 'Compose high-energy, emotionally resonant musical prompts and arrangement blueprints that match the video BPM and climax drop.',
     backstory: 'Film score composer and sound designer for viral trailers. Translates visual pacing into exact musical parameters (BPM, analog instrumentation, bass drops).',
-    task_description: 'Synthesize DeepMind Lyria conditioning prompt and procedural arrangement curve with dynamic ducking level.',
+    task_description: 'Synthesize Lyria audio conditioning prompt and procedural arrangement curve with dynamic ducking level.',
     expected_output: 'MusicResult (Pydantic)',
     model: 'gemini-3.7-flash',
     temperature: 0.4,
-    tools: ['DeepMindLyriaTool', 'WebAudioSynthesizer'],
+    tools: ['LyriaMusicTool', 'WebAudioSynthesizer'],
     phase: 2,
     isEnabled: true,
     executionType: 'async_fanout'

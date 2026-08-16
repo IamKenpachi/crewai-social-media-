@@ -146,7 +146,7 @@ class LyriaMusicInput(BaseModel):
 
 class LyriaMusicGenTool(BaseTool):
     name: str = "Lyria Music Generator"
-    description: str = "Synthesizes background music tailored to video mood and BPM using Google DeepMind Lyria."
+    description: str = "Synthesizes background music tailored to video mood and BPM using Lyria Audio."
     args_schema: Type[BaseModel] = LyriaMusicInput
 
     def _run(self, music_prompt: str, duration_seconds: int = 30, output_filename: str = "bg_music.mp3") -> str:

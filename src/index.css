@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Full Obsidian Dark Theme Rules */
+html.dark,
+body.dark,
+.dark {
+  color-scheme: dark;
+  background-color: #030712;
+  color: #f8fafc;
+}
+
+html.dark ::selection {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     height: 6px;
@@ -14,6 +30,14 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 116, 139, 0.7);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(51, 65, 85, 0.6);
+    border-radius: 9999px;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(71, 85, 105, 0.9);
   }
 }
 
