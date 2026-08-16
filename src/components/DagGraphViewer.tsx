@@ -15,24 +15,141 @@ import {
   Zap, 
   Layers,
   ChevronRight,
-  Info
+  Info,
+  Plus,
+  Wand2,
+  Settings2,
+  ToggleLeft,
+  ToggleRight,
+  Sliders,
+  X,
+  Copy,
+  Check,
+  RefreshCw,
+  Terminal,
+  Code2
 } from 'lucide-react';
-import { AgentLogEntry } from '../types';
+import { AgentLogEntry, CustomAgentConfig } from '../types';
+import { AVAILABLE_MODELS } from './ApiSettingsModal';
 
 interface DagGraphViewerProps {
   currentPhase: number;
   activeAgentId?: string;
   logs: AgentLogEntry[];
   onSelectAgent?: (agentId: string) => void;
+  apiKey?: string;
 }
+
+const DEFAULT_AGENTS: CustomAgentConfig[] = [
+  {
+    id: 'video_analyst',
+    name: '1. Multimodal Narrative Analyst',
+    role: 'Principal Video Perception & Clip Director',
+    goal: 'Deconstruct raw media into second-by-second narrative beats, identify the 1.5s hook, and segment 3 viral clips with 1-100 scores.',
+    backstory: 'Veteran film editor and video data scientist trained on millions of hours of viral social media analytics. Specializes in 0-3s retention gates and emotional climax detection.',
+    task_description: 'Analyze input frames, extract color palette, detect BPM tempo, segment 3 distinct high-retention clips, and generate synchronized karaoke subtitles.',
+    expected_output: 'VideoAnalysisResult with ExtractedClip[] and SubtitleLine[] (Pydantic)',
+    model: 'gemini-3.7-flash',
+    temperature: 0.2,
+    tools: ['GeminiVideoAnalysisTool', 'KaraokeSubtitleEngine'],
+    phase: 1,
+    isEnabled: true,
+    executionType: 'sequential'
+  },
+  {
+    id: 'tiktok_strategist',
+    name: '2. TikTok Search SEO & Viral Strategist',
+    role: 'Search SEO, Retention & Velocity Specialist',
+    goal: 'Craft high-velocity TikTok content packages utilizing 2026 TikTok Search Engine intent, sub-3s auditory pattern interrupts, and 3-3-3 hashtags.',
+    backstory: 'Growth architect specializing in the 2026 TikTok algorithm where TikTok operates as a primary search engine. Enforces spoken keyword matching and triple-tier CTAs.',
+    task_description: 'Formulate search query title, 3 hook variations, 3-3-3 hashtag strategy (Trending, Niche, Content), and triple-tier conversion callouts.',
+    expected_output: 'TikTokContent (2026 SEO Pydantic)',
+    model: 'gemini-3.7-flash',
+    temperature: 0.7,
+    tools: ['TikTokSEOEngine', 'HashtagMatrixOptimizer'],
+    phase: 2,
+    isEnabled: true,
+    executionType: 'async_fanout'
+  },
+  {
+    id: 'yt_strategist',
+    name: '3. YouTube Shorts SEO & AVD Architect',
+    role: 'Search SEO, Browse Features & AVD Retention Lead',
+    goal: 'Maximize Click-Through Rate (CTR) and Average View Duration (AVD > 100%) through front-loaded titles and infinite loop bridges.',
+    backstory: 'Specialist in YouTube recommendation systems (Browse vs Shorts Shelf). Optimizes for the 25-45 character mobile title sweet spot and re-watch loops.',
+    task_description: 'Generate frontloaded mobile title, SEO description with takeaways, infinite loop transition cues, and search ranking tags.',
+    expected_output: 'YouTubeShortsContent (2026 SEO Pydantic)',
+    model: 'gemini-3.7-flash',
+    temperature: 0.6,
+    tools: ['YouTubeMetadataEngine', 'AVDRetentionRanker'],
+    phase: 2,
+    isEnabled: true,
+    executionType: 'async_fanout'
+  },
+  {
+    id: 'art_director',
+    name: '4. AI Thumbnail Art Director',
+    role: 'Senior Viral Visual Strategist & AI Art Director',
+    goal: 'Engineer high-CTR (12-18%+) thumbnail prompts and visual manifests using the Six-Slot Formula, selective vibrancy, and mobile safe zones.',
+    backstory: 'Creative director with over 500M+ thumbnail views. Expert in the Six-Slot Prompt Architecture, cognitive curiosity gaps, and 3-element composition.',
+    task_description: 'Construct 3 A/B/C thumbnail archetypes (Emotion Shockwave, Curiosity Gap, Minimalist Punch) with six-slot prompt slots and 5-pillar scorecard.',
+    expected_output: 'ThumbnailResult with ThumbnailVariant[] and Scorecard (Pydantic)',
+    model: 'gemini-3.7-flash',
+    temperature: 0.5,
+    tools: ['SixSlotPromptArchitect', 'gemini-3-pro-image'],
+    phase: 2,
+    isEnabled: true,
+    executionType: 'async_fanout'
+  },
+  {
+    id: 'audio_director',
+    name: '5. Audio Maestro & Sound Producer',
+    role: 'Sonic Branding & Audio Synchronization Maestro',
+    goal: 'Compose high-energy, emotionally resonant musical prompts and arrangement blueprints that match the video BPM and climax drop.',
+    backstory: 'Film score composer and sound designer for viral trailers. Translates visual pacing into exact musical parameters (BPM, analog instrumentation, bass drops).',
+    task_description: 'Synthesize DeepMind Lyria conditioning prompt and procedural arrangement curve with dynamic ducking level.',
+    expected_output: 'MusicResult (Pydantic)',
+    model: 'gemini-3.7-flash',
+    temperature: 0.4,
+    tools: ['DeepMindLyriaTool', 'WebAudioSynthesizer'],
+    phase: 2,
+    isEnabled: true,
+    executionType: 'async_fanout'
+  },
+  {
+    id: 'production_engineer',
+    name: '6. Post-Production Packaging Engineer',
+    role: 'Lead Media Systems Engineer & FFmpeg Orchestrator',
+    goal: 'Package and validate all agent outputs into a unified manifest with FFmpeg audio ducking, burned-in subtitles, and execution telemetry.',
+    backstory: 'Media systems architect ensuring broadcast-grade file compliance, zero audio clipping, and seamless client-side MP4 container rendering.',
+    task_description: 'Render ducked audio mix (original audio muted), burn animated karaoke subtitles, and assemble final deliverables package.',
+    expected_output: 'MediaPackageOutput (Pydantic)',
+    model: 'gemini-3.7-flash',
+    temperature: 0.1,
+    tools: ['FFmpegAudioDucker', 'CanvasSubtitleBurner'],
+    phase: 3,
+    isEnabled: true,
+    executionType: 'sequential'
+  }
+];
 
 export const DagGraphViewer: React.FC<DagGraphViewerProps> = ({
   currentPhase,
   activeAgentId,
   logs,
   onSelectAgent,
+  apiKey = ''
 }) => {
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [agents, setAgents] = useState<CustomAgentConfig[]>(DEFAULT_AGENTS);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(agents[0]?.id || null);
+  const [isPromptFlowOpen, setIsPromptFlowOpen] = useState<boolean>(false);
+  const [isAddAgentOpen, setIsAddAgentOpen] = useState<boolean>(false);
+  const [promptInput, setPromptInput] = useState<string>('');
+  const [isGeneratingFlow, setIsGeneratingFlow] = useState<boolean>(false);
+  const [copiedPython, setCopiedPython] = useState<boolean>(false);
+
+  // Active selected agent for inspector
+  const activeAgent = agents.find(a => a.id === selectedAgentId) || agents[0];
 
   const getAgentStatus = (agentId: string) => {
     const log = logs.find((l) => l.agentId === agentId);
@@ -46,501 +163,579 @@ export const DagGraphViewer: React.FC<DagGraphViewerProps> = ({
     return log.status;
   };
 
-  const getNodeDetails = (id: string) => {
-    switch (id) {
-      case 'video_analyst':
-        return {
-          name: '1. Multimodal Video Analyst',
-          tool: 'GeminiVideoAnalysisTool (gemini-3.7-flash)',
-          model: 'Gemini 3.7 Flash Multimodal',
-          role: 'Perception Agent & Creative Director',
-          desc: 'Performs frame-by-frame narrative breakdown, mood evaluation, tempo extraction (BPM), and viral retention triggers.',
-          outputSchema: 'VideoAnalysisResult (Pydantic)',
-          executionType: 'Sequential (Phase 1)',
-        };
-      case 'tiktok_strategist':
-        return {
-          name: '2. TikTok Search SEO & Viral Strategist',
-          tool: 'TikTok 2026 Algorithm & SEO Engine',
-          model: 'Gemini 3.7 Flash',
-          role: 'Search SEO, Retention & Velocity Specialist',
-          desc: 'Applies 2026 TikTok algorithm rules: search-intent query titles, sub-3s audio/visual matching hooks, 3-3-3 hashtag breakdown, and triple-tier CTAs.',
-          outputSchema: 'TikTokContent (2026 SEO Pydantic)',
-          executionType: 'Async Concurrency (Phase 2)',
-        };
-      case 'yt_strategist':
-        return {
-          name: '3. YouTube Shorts SEO & Retention Lead',
-          tool: 'YouTube 2026 SEO & Retention Ranker',
-          model: 'Gemini 3.7 Flash',
-          role: 'Search SEO, Browse Features & AVD Retention Architect',
-          desc: 'Applies 2026 YouTube Shorts rules: mobile sweet spot titles (25-45 chars), front-loaded descriptions, hashtag matrix (#Shorts + Niche + Search), and >100% AVD infinite loop engineering.',
-          outputSchema: 'YouTubeShortsContent (2026 SEO Pydantic)',
-          executionType: 'Async Concurrency (Phase 2)',
-        };
-      case 'art_director':
-        return {
-          name: '4. AI Thumbnail Art Director',
-          tool: 'ThumbnailGeneratorTool (gemini-3-pro-image)',
-          model: 'gemini-3-pro-image',
-          role: 'Visual Composition & Click-Through Lead',
-          desc: 'Engineers 3D visual composition prompts with dramatic rim-lighting and executes high-contrast image generation for 9:16 / 16:9 thumbnails via gemini-3-pro-image.',
-          outputSchema: 'ThumbnailResult (Pydantic)',
-          executionType: 'Async Concurrency (Phase 2)',
-        };
-      case 'audio_director':
-        return {
-          name: '5. Audio Maestro & Composer',
-          tool: 'LyriaMusicGenTool (DeepMind Lyria)',
-          model: 'Google DeepMind Lyria Music API',
-          role: 'Soundtrack & Tempo Producer',
-          desc: 'Translates video emotion, pacing, and BPM into rich musical prompts to synthesize dynamic background tracks.',
-          outputSchema: 'MusicResult (Pydantic)',
-          executionType: 'Async Concurrency (Phase 2)',
-        };
-      case 'production_engineer':
-        return {
-          name: '6. Post-Production Packaging Engineer',
-          tool: 'VideoAudioMuxerTool (FFmpeg Audio Ducking)',
-          model: 'Deterministic Python FFmpeg BaseTool',
-          role: 'Media Packager & Muxing Coordinator',
-          desc: 'Applies FFmpeg audio ducking filter (-filter_complex volume=0.22 amix) to merge background music with speech and packages deliverables.',
-          outputSchema: 'MediaPackageOutput (Pydantic)',
-          executionType: 'Sequential Assembly (Phase 3)',
-        };
-      default:
-        return null;
+  const handleToggleAgent = (agentId: string) => {
+    setAgents(prev => prev.map(a => a.id === agentId ? { ...a, isEnabled: !a.isEnabled } : a));
+  };
+
+  const handleUpdateActiveAgent = (field: keyof CustomAgentConfig, value: any) => {
+    if (!selectedAgentId) return;
+    setAgents(prev => prev.map(a => a.id === selectedAgentId ? { ...a, [field]: value } : a));
+  };
+
+  // Generate Python CrewAI script from current agent topology
+  const generateCrewAiPythonScript = () => {
+    const enabledAgents = agents.filter(a => a.isEnabled);
+    return `# =========================================================================
+# CrewAI Studio 2026: Autonomous Multi-Agent Production Pipeline
+# Generated from Visual DAG Architecture
+# =========================================================================
+
+from crewai import Agent, Crew, Process, Task
+from langchain_google_genai import ChatGoogleGenerativeAI
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+# Initialize Primary Gemini Reasoning Engine
+llm = ChatGoogleGenerativeAI(
+    model="${activeAgent?.model || 'gemini-3.7-flash'}",
+    temperature=0.4
+)
+
+# -------------------------------------------------------------------------
+# Agent Definitions (Grounded in the 80/20 Task-to-Agent Rule)
+# -------------------------------------------------------------------------
+${enabledAgents.map((a) => `
+${a.id}_agent = Agent(
+    role="${a.role}",
+    goal="${a.goal.replace(/"/g, '\\"')}",
+    backstory="""${a.backstory.replace(/"/g, '\\"')}""",
+    verbose=True,
+    allow_delegation=False,
+    llm=ChatGoogleGenerativeAI(model="${a.model}", temperature=${a.temperature})
+)`).join('\n')}
+
+# -------------------------------------------------------------------------
+# Task Specifications with Strict Pydantic Constraints
+# -------------------------------------------------------------------------
+${enabledAgents.map((a) => `
+${a.id}_task = Task(
+    description="""${a.task_description.replace(/"/g, '\\"')}""",
+    expected_output="${a.expected_output.replace(/"/g, '\\"')}",
+    agent=${a.id}_agent${a.phase > 1 ? `,
+    context=[${enabledAgents.filter(other => other.phase < a.phase).map(o => `${o.id}_task`).join(', ')}]` : ''}
+)`).join('\n')}
+
+# -------------------------------------------------------------------------
+# Crew Orchestration (Async Fan-Out Concurrency)
+# -------------------------------------------------------------------------
+media_crew = Crew(
+    agents=[${enabledAgents.map(a => `${a.id}_agent`).join(', ')}],
+    tasks=[${enabledAgents.map(a => `${a.id}_task`).join(', ')}],
+    process=Process.sequential, # Phase 2 tasks execute asynchronously via callback
+    verbose=True
+)
+
+if __name__ == "__main__":
+    inputs = {
+        "media_title": "Autonomous Cyberpunk Render",
+        "category": "Tech & CGI",
+        "aspect_ratio": "9:16"
+    }
+    result = media_crew.kickoff(inputs=inputs)
+    print("Crew Execution Output:", result)
+`;
+  };
+
+  const handleCopyPython = () => {
+    navigator.clipboard.writeText(generateCrewAiPythonScript());
+    setCopiedPython(true);
+    setTimeout(() => setCopiedPython(false), 2000);
+  };
+
+  // Prompt-to-Flow AI Generator
+  const handleRunPromptToFlow = async () => {
+    if (!promptInput.trim()) return;
+    setIsGeneratingFlow(true);
+    try {
+      const resp = await fetch('/api/prompt-to-flow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptInput, apiKey })
+      });
+      const data = await resp.json();
+      if (data.success && data.workflow?.nodes) {
+        setAgents(data.workflow.nodes);
+        setSelectedAgentId(data.workflow.nodes[0]?.id || null);
+        setIsPromptFlowOpen(false);
+        setPromptInput('');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingFlow(false);
     }
   };
 
-  const activeDetails = selectedNode ? getNodeDetails(selectedNode) : null;
+  const phase1Agents = agents.filter(a => a.phase === 1);
+  const phase2Agents = agents.filter(a => a.phase === 2);
+  const phase3Agents = agents.filter(a => a.phase === 3);
 
   return (
-    <div id="dag-graph-view" className="w-full flex flex-col gap-6">
+    <div id="dag-graph-root" className="w-full flex flex-col gap-6">
       
-      {/* Top Architecture Summary Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 relative overflow-hidden shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
-                <Cpu className="w-3.5 h-3.5 text-blue-600" />
-                CrewAI Multi-Agent Architecture DAG
-              </span>
-              <span className="text-xs text-slate-400 font-mono">
-                Directed Acyclic Graph Execution
-              </span>
-            </div>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Cognitive Reasoning vs Deterministic Tool Separation
-            </h2>
-            <p className="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
-              Agents never manipulate media binaries directly. Specialized cognitive agents formulate strategies while deterministic tools (Gemini Multimodal, Imagen 3, Lyria, and FFmpeg) handle media synthesis.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-right">
-              <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Execution Flow</div>
-              <div className="text-xs font-bold text-blue-600">
-                1 Sequential → 4 Async Fan-Out → 1 Assembly
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Interactive Diagram Canvas */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-10 relative overflow-x-auto shadow-xs">
-        
-        <div className="min-w-[900px] flex flex-col items-center gap-8 relative">
-
-          {/* 1. INPUT MEDIA NODE */}
-          <div className="flex flex-col items-center">
-            <div className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-sm flex items-center gap-3 border border-slate-800">
-              <Film className="w-4 h-4 text-blue-400" />
-              <span>Input Video / Picture Media Asset</span>
-              <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-blue-300 border border-slate-700 font-mono">
-                H.264 / 4K
-              </span>
-            </div>
-            <div className="w-0.5 h-8 bg-blue-400 my-1" />
-          </div>
-
-          {/* 2. PHASE 1: SEQUENTIAL INGESTION */}
-          <div className="w-full max-w-2xl flex flex-col items-center">
-            <div className="text-xs uppercase tracking-widest text-blue-600 font-extrabold mb-2 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-              Phase 1: Ingestion (Sequential Perception)
-            </div>
-
-            <div
-              onClick={() => {
-                setSelectedNode('video_analyst');
-                onSelectAgent?.('video_analyst');
-              }}
-              className={`w-full p-5 rounded-2xl cursor-pointer transition-all duration-300 border relative ${
-                selectedNode === 'video_analyst'
-                  ? 'bg-blue-50/70 border-blue-600 ring-2 ring-blue-600/20 shadow-sm'
-                  : getAgentStatus('video_analyst') === 'running'
-                  ? 'bg-blue-50/40 border-blue-400 animate-pulse ring-2 ring-blue-500/20'
-                  : getAgentStatus('video_analyst') === 'completed'
-                  ? 'bg-slate-50 border-emerald-500/60 shadow-2xs'
-                  : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 shadow-2xs'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 font-bold">
-                    <Eye className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900">
-                        1. Multimodal Video Analyst
-                      </h3>
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold">
-                        Director Persona
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Tool: <code className="text-blue-600 font-mono font-bold">GeminiVideoAnalysisTool</code> (gemini-3.7-flash)
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {getAgentStatus('video_analyst') === 'completed' && (
-                    <span className="flex items-center gap-1 text-xs text-emerald-700 font-bold px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Done
-                    </span>
-                  )}
-                  {getAgentStatus('video_analyst') === 'running' && (
-                    <span className="flex items-center gap-1 text-xs text-blue-700 font-bold px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 animate-pulse">
-                      <Clock className="w-3.5 h-3.5 animate-spin" /> Ingesting
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* SHARED CONTEXT BRIDGE */}
-            <div className="w-0.5 h-6 bg-slate-300 my-1" />
-            <div className="px-5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-900 shadow-2xs flex items-center gap-2">
-              <FileCode2 className="w-4 h-4 text-blue-600" />
-              <span>Structured Scene &amp; Mood Brief (Pydantic Context)</span>
-            </div>
-            <div className="w-0.5 h-6 bg-slate-300 my-1" />
-          </div>
-
-          {/* 3. PHASE 2: ASYNC FAN-OUT (PARALLEL CONCURRENCY) */}
-          <div className="w-full flex flex-col items-center">
-            <div className="text-xs uppercase tracking-widest text-emerald-700 font-extrabold mb-4 flex items-center gap-2 bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-200">
-              <Zap className="w-3.5 h-3.5 text-emerald-600" />
-              Phase 2: Parallel Async Fan-Out (<code className="font-mono text-emerald-800 font-bold">async_execution=True</code> • -70% Latency)
-            </div>
-
-            {/* 4 Parallel Nodes Grid */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              
-              {/* Agent 2: TikTok Copywriter */}
-              <div
-                onClick={() => {
-                  setSelectedNode('tiktok_strategist');
-                  onSelectAgent?.('tiktok_strategist');
-                }}
-                className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col justify-between ${
-                  selectedNode === 'tiktok_strategist'
-                    ? 'bg-rose-50/70 border-rose-500 ring-2 ring-rose-500/20 shadow-sm'
-                    : getAgentStatus('tiktok_strategist') === 'running'
-                    ? 'bg-rose-50/40 border-rose-400 animate-pulse ring-2 ring-rose-400/20'
-                    : getAgentStatus('tiktok_strategist') === 'completed'
-                    ? 'bg-slate-50 border-emerald-500/60 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 font-bold">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">
-                      Async Task 1
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900">2. TikTok Viral Copywriter</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Hooks, curiosity gaps &amp; trending hashtag stack.
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-mono text-[11px]">TikTokContent</span>
-                  {getAgentStatus('tiktok_strategist') === 'completed' ? (
-                    <span className="text-emerald-600 font-bold">Ready</span>
-                  ) : (
-                    <span className="text-slate-400">Standby</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Agent 3: YouTube Shorts SEO */}
-              <div
-                onClick={() => {
-                  setSelectedNode('yt_strategist');
-                  onSelectAgent?.('yt_strategist');
-                }}
-                className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col justify-between ${
-                  selectedNode === 'yt_strategist'
-                    ? 'bg-red-50/70 border-red-500 ring-2 ring-red-500/20 shadow-sm'
-                    : getAgentStatus('yt_strategist') === 'running'
-                    ? 'bg-red-50/40 border-red-400 animate-pulse ring-2 ring-red-400/20'
-                    : getAgentStatus('yt_strategist') === 'completed'
-                    ? 'bg-slate-50 border-emerald-500/60 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center text-red-600 font-bold">
-                      <Search className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">
-                      Async Task 2
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900">3. YouTube Shorts SEO Lead</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    High-CTR title (&lt;60c), timestamps &amp; keywords.
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-mono text-[11px]">ShortsContent</span>
-                  {getAgentStatus('yt_strategist') === 'completed' ? (
-                    <span className="text-emerald-600 font-bold">Ready</span>
-                  ) : (
-                    <span className="text-slate-400">Standby</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Agent 4: Visual Art Director */}
-              <div
-                onClick={() => {
-                  setSelectedNode('art_director');
-                  onSelectAgent?.('art_director');
-                }}
-                className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col justify-between ${
-                  selectedNode === 'art_director'
-                    ? 'bg-purple-50/70 border-purple-500 ring-2 ring-purple-500/20 shadow-sm'
-                    : getAgentStatus('art_director') === 'running'
-                    ? 'bg-purple-50/40 border-purple-400 animate-pulse ring-2 ring-purple-400/20'
-                    : getAgentStatus('art_director') === 'completed'
-                    ? 'bg-slate-50 border-emerald-500/60 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-600 font-bold">
-                      <Image className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">
-                      Async Task 3
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900">4. Art Director (Visuals)</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Tool: <code className="text-purple-700 font-mono font-bold">ThumbnailTool</code> (Imagen 3)
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-mono text-[11px]">Thumbnail.png</span>
-                  {getAgentStatus('art_director') === 'completed' ? (
-                    <span className="text-emerald-600 font-bold">Ready</span>
-                  ) : (
-                    <span className="text-slate-400">Standby</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Agent 5: Audio Maestro */}
-              <div
-                onClick={() => {
-                  setSelectedNode('audio_director');
-                  onSelectAgent?.('audio_director');
-                }}
-                className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col justify-between ${
-                  selectedNode === 'audio_director'
-                    ? 'bg-amber-50/70 border-amber-500 ring-2 ring-amber-500/20 shadow-sm'
-                    : getAgentStatus('audio_director') === 'running'
-                    ? 'bg-amber-50/40 border-amber-400 animate-pulse ring-2 ring-amber-400/20'
-                    : getAgentStatus('audio_director') === 'completed'
-                    ? 'bg-slate-50 border-emerald-500/60 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-600 font-bold">
-                      <Music className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                      Async Task 4
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900">5. Audio Maestro (Music)</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Tool: <code className="text-amber-700 font-mono font-bold">LyriaMusicGenTool</code> (Lyria API)
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-mono text-[11px]">Soundtrack.mp3</span>
-                  {getAgentStatus('audio_director') === 'completed' ? (
-                    <span className="text-emerald-600 font-bold">Ready</span>
-                  ) : (
-                    <span className="text-slate-400">Standby</span>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* 4. PHASE 3: ASSEMBLY & PACKAGING */}
-          <div className="w-full max-w-2xl flex flex-col items-center">
-            <div className="w-0.5 h-6 bg-slate-300 my-1" />
-            <div className="text-xs uppercase tracking-widest text-blue-600 font-extrabold mb-2 flex items-center gap-1.5">
+      {/* Top Banner with Actions */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 relative overflow-hidden shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-blue-600" />
-              Phase 3: Assembly &amp; Muxing (Sequential Integration)
+              CrewAI Studio 2026 Interactive Visual DAG
+            </span>
+            <span className="text-xs text-slate-400 font-mono">
+              {agents.filter(a => a.isEnabled).length} of {agents.length} Agents Active
+            </span>
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Multi-Agent Architecture &amp; Workflow Customizer
+          </h2>
+          <p className="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            Click any agent node to inspect its Role, 80/20 Task specifications, and Gemini model parameters. Use "Prompt-to-Flow" to generate custom architectures on the fly.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsPromptFlowOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+          >
+            <Wand2 className="w-4 h-4" />
+            <span>Prompt-to-Flow AI</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const newAgent: CustomAgentConfig = {
+                id: `custom_agent_${Date.now()}`,
+                name: 'Custom Specialist Agent',
+                role: 'Domain Specialist',
+                goal: 'Execute custom post-processing or validation rules',
+                backstory: 'Specialized domain expert adhering to strict quality parameters',
+                task_description: 'Process inputs and produce structured deliverable',
+                expected_output: 'CustomResult (Pydantic)',
+                model: 'gemini-3.7-flash',
+                temperature: 0.3,
+                tools: ['CustomDomainTool'],
+                phase: 2,
+                isEnabled: true,
+                isCustom: true,
+                executionType: 'async_fanout'
+              };
+              setAgents(prev => [...prev, newAgent]);
+              setSelectedAgentId(newAgent.id);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-all shadow-xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4 text-slate-600" />
+            <span>Add Custom Agent</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main 2-Column Canvas & Inspector Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left: Visual DAG Node Canvas (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          
+          {/* Phase 1 Container */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-600" />
+                <span>Phase 1: Ingestion &amp; Scene Perception (Sequential)</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-slate-400">Step 1</span>
             </div>
 
-            <div
-              onClick={() => {
-                setSelectedNode('production_engineer');
-                onSelectAgent?.('production_engineer');
-              }}
-              className={`w-full p-5 rounded-2xl cursor-pointer transition-all duration-300 border relative ${
-                selectedNode === 'production_engineer'
-                  ? 'bg-blue-50/70 border-blue-600 ring-2 ring-blue-600/20 shadow-sm'
-                  : getAgentStatus('production_engineer') === 'running'
-                  ? 'bg-blue-50/40 border-blue-400 animate-pulse ring-2 ring-blue-400/20'
-                  : getAgentStatus('production_engineer') === 'completed'
-                  ? 'bg-slate-50 border-emerald-500/60 shadow-2xs'
-                  : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 shadow-2xs'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 font-bold">
-                    <Film className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900">
-                        6. Post-Production Packaging Engineer
-                      </h3>
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold">
-                        Deterministic Muxer
-                      </span>
+            <div className="flex flex-col gap-2.5">
+              {phase1Agents.map((agent) => {
+                const isSelected = agent.id === selectedAgentId;
+                const status = getAgentStatus(agent.id);
+                return (
+                  <div
+                    key={agent.id}
+                    onClick={() => {
+                      setSelectedAgentId(agent.id);
+                      onSelectAgent?.(agent.id);
+                    }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                        : agent.isEnabled
+                          ? 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+                          : 'bg-slate-100/60 border-slate-200 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                        <Eye className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-slate-900 truncate">{agent.name}</h4>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                            {agent.model}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{agent.role}</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Tool: <code className="text-blue-600 font-mono font-bold">VideoAudioMuxerTool</code> (FFmpeg Audio Ducking @ 22% Vol)
-                    </p>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`w-2.5 h-2.5 rounded-full ${
+                        status === 'completed' ? 'bg-emerald-500' : status === 'running' ? 'bg-blue-600 animate-ping' : 'bg-slate-300'
+                      }`} />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAgent(agent.id);
+                        }}
+                        className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                        title={agent.isEnabled ? 'Disable agent' : 'Enable agent'}
+                      >
+                        {agent.isEnabled ? <ToggleRight className="w-6 h-6 text-blue-600" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {getAgentStatus('production_engineer') === 'completed' && (
-                    <span className="flex items-center gap-1 text-xs text-emerald-700 font-bold px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Ready
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
+                );
+              })}
             </div>
-
-            <div className="w-0.5 h-6 bg-slate-300 my-1" />
           </div>
 
-          {/* 5. FINAL EXPORT BUNDLE */}
-          <div className="w-full max-w-3xl rounded-2xl bg-white border border-slate-200 p-5 shadow-xs">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600">
-                  <ShieldCheck className="w-6 h-6" />
+          {/* Flow Arrow Down */}
+          <div className="flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+              <ArrowDown className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Phase 2 Container (Async Concurrency Fan-Out) */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                <span>Phase 2: Autonomous Strategy Crews (Async Concurrency Fan-Out)</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                Promise.all Parallel
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {phase2Agents.map((agent) => {
+                const isSelected = agent.id === selectedAgentId;
+                const status = getAgentStatus(agent.id);
+                return (
+                  <div
+                    key={agent.id}
+                    onClick={() => {
+                      setSelectedAgentId(agent.id);
+                      onSelectAgent?.(agent.id);
+                    }}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                        : agent.isEnabled
+                          ? 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+                          : 'bg-slate-100/60 border-slate-200 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-slate-900 block truncate">{agent.name}</span>
+                        <span className="text-[10px] text-slate-500 block truncate mt-0.5">{agent.role}</span>
+                      </div>
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${
+                        status === 'completed' ? 'bg-emerald-500' : status === 'running' ? 'bg-blue-600 animate-ping' : 'bg-slate-300'
+                      }`} />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px]">
+                      <span className="font-mono text-slate-500">T: {agent.temperature}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAgent(agent.id);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {agent.isEnabled ? <ToggleRight className="w-5 h-5 text-blue-600" /> : <ToggleLeft className="w-5 h-5 text-slate-300" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Flow Arrow Down */}
+          <div className="flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+              <ArrowDown className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Phase 3 Container */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                <span>Phase 3: Assembly, Ducking &amp; Subtitle Burn-In (Sequential)</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-slate-400">Final Gate</span>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              {phase3Agents.map((agent) => {
+                const isSelected = agent.id === selectedAgentId;
+                const status = getAgentStatus(agent.id);
+                return (
+                  <div
+                    key={agent.id}
+                    onClick={() => {
+                      setSelectedAgentId(agent.id);
+                      onSelectAgent?.(agent.id);
+                    }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                        : agent.isEnabled
+                          ? 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+                          : 'bg-slate-100/60 border-slate-200 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                        <Cpu className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-slate-900 truncate">{agent.name}</h4>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                            {agent.model}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{agent.role}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`w-2.5 h-2.5 rounded-full ${
+                        status === 'completed' ? 'bg-emerald-500' : status === 'running' ? 'bg-blue-600 animate-ping' : 'bg-slate-300'
+                      }`} />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAgent(agent.id);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {agent.isEnabled ? <ToggleRight className="w-6 h-6 text-blue-600" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right: Node Inspector Drawer & Python Code Generator (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          
+          {/* Node Parameter Inspector */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold text-slate-900">Agent Node Inspector</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
+                Phase {activeAgent.phase}
+              </span>
+            </div>
+
+            {/* Editable Fields */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">Agent Role:</label>
+                <input
+                  type="text"
+                  value={activeAgent.role}
+                  onChange={(e) => handleUpdateActiveAgent('role', e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">Core Goal:</label>
+                <textarea
+                  value={activeAgent.goal}
+                  onChange={(e) => handleUpdateActiveAgent('goal', e.target.value)}
+                  rows={2}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 resize-none focus:bg-white"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">Backstory (Persona Anchor):</label>
+                <textarea
+                  value={activeAgent.backstory}
+                  onChange={(e) => handleUpdateActiveAgent('backstory', e.target.value)}
+                  rows={3}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 resize-none focus:bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase">Reasoning Model:</label>
+                  <select
+                    value={activeAgent.model}
+                    onChange={(e) => handleUpdateActiveAgent('model', e.target.value)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  >
+                    {AVAILABLE_MODELS.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">FINAL DELIVERABLES EXPORT PACKAGE</h4>
-                  <p className="text-xs text-slate-500">
-                    Ready for automated publishing, API webhooks, or creator dashboard review.
-                  </p>
+
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-[11px] font-bold text-slate-700 uppercase">
+                    <span>Temperature:</span>
+                    <span className="font-mono text-blue-600">{activeAgent.temperature}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max="1.0"
+                    step="0.05"
+                    value={activeAgent.temperature}
+                    onChange={(e) => handleUpdateActiveAgent('temperature', parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
+                  />
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 text-[11px]">
-                <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  • Ducked MP4 Video
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  • High-CTR PNG Thumbnail
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  • TikTok Metadata
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  • YouTube Shorts SEO
-                </span>
+              <div className="flex flex-col gap-1 pt-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">Assigned Tool Bindings:</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeAgent.tools.map((t, i) => (
+                    <span key={i} className="px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-mono text-[10px] font-bold">
+                      {t}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* Generated Python Code Preview */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold text-slate-900">Live CrewAI Python Export</span>
+              </div>
+              <button
+                onClick={handleCopyPython}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 cursor-pointer"
+              >
+                {copiedPython ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedPython ? 'Copied!' : 'Copy Code'}</span>
+              </button>
+            </div>
+
+            <pre className="p-3 bg-slate-900 text-emerald-400 rounded-xl text-[10px] font-mono overflow-x-auto max-h-48">
+              {generateCrewAiPythonScript()}
+            </pre>
           </div>
 
         </div>
 
       </div>
 
-      {/* Selected Node Details Drawer */}
-      {activeDetails && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <Info className="w-5 h-5 text-blue-600" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">{activeDetails.name}</h3>
-                <span className="text-xs text-blue-600 font-medium">{activeDetails.role}</span>
+      {/* Prompt-to-Flow AI Modal */}
+      {isPromptFlowOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl flex flex-col gap-4 border border-slate-200">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-blue-600" />
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Prompt-to-Flow AI Architect</h3>
+                  <p className="text-xs text-slate-500">Describe any custom media workflow and Gemini will build the DAG</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPromptFlowOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-700">Workflow Prompt / Requirements:</label>
+              <textarea
+                value={promptInput}
+                onChange={(e) => setPromptInput(e.target.value)}
+                placeholder="e.g. Create a podcast repurposing pipeline that segments 3 clips, writes LinkedIn carousels, generates Spanish subtitles, and checks brand safety..."
+                rows={3}
+                className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 resize-none focus:outline-none focus:border-blue-600"
+              />
+
+              {/* Sample Prompts */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-400 font-bold block w-full">Quick Suggestions:</span>
+                {[
+                  'Podcast to TikTok clips + Spanish translation',
+                  'Tech unboxing with Amazon affiliate SEO',
+                  'Gaming montage with high-energy audio beats'
+                ].map((s, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setPromptInput(s)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-[10px] font-medium text-slate-600 transition-colors cursor-pointer"
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="text-xs px-3 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold transition-all"
-            >
-              Close
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Attached Tool</span>
-              <code className="text-emerald-700 font-mono font-bold break-all">{activeDetails.tool}</code>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setIsPromptFlowOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRunPromptToFlow}
+                disabled={isGeneratingFlow || !promptInput.trim()}
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 cursor-pointer"
+              >
+                {isGeneratingFlow ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Architecting Workflow...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Generate DAG Architecture</span>
+                  </>
+                )}
+              </button>
             </div>
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Underlying AI Model</span>
-              <span className="text-blue-700 font-bold">{activeDetails.model}</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Pydantic Validation</span>
-              <code className="text-amber-700 font-mono font-bold">{activeDetails.outputSchema}</code>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Execution Schedule</span>
-              <span className="text-slate-800 font-bold">{activeDetails.executionType}</span>
-            </div>
-          </div>
 
-          <div className="mt-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
-            <span className="font-bold text-slate-900">Agent Functional Directive: </span>
-            {activeDetails.desc}
           </div>
         </div>
       )}

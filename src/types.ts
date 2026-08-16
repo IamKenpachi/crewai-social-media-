@@ -1,3 +1,50 @@
+export interface SubtitleWord {
+  id: string;
+  text: string;
+  start_ms: number;
+  end_ms: number;
+  is_highlighted?: boolean;
+}
+
+export interface SubtitleLine {
+  id: string;
+  text: string;
+  start_ms: number;
+  end_ms: number;
+  emoji?: string;
+  words: SubtitleWord[];
+}
+
+export type SubtitleStylePreset = 'hormozi' | 'mrbeast' | 'neon' | 'minimal';
+
+export interface ViralityBreakdown {
+  hook_strength: number; // 0-100 (0-3s retention grip)
+  visual_climax: number; // 0-100 (motion & visual peak)
+  topic_novelty: number; // 0-100 (curiosity & uniqueness)
+  audio_sync: number; // 0-100 (beat alignment & sonic impact)
+  loop_continuity: number; // 0-100 (infinite loop seamlessness)
+}
+
+export interface ExtractedClip {
+  id: string;
+  clip_number: number;
+  title: string;
+  hook_summary: string;
+  start_time: string; // e.g. "0:00"
+  end_time: string; // e.g. "0:14"
+  start_seconds: number;
+  end_seconds: number;
+  duration_seconds: number;
+  virality_score: number; // 0-100
+  virality_breakdown: ViralityBreakdown;
+  why_viral_reasoning: string;
+  retention_tactics: string[];
+  subtitles: SubtitleLine[];
+  tiktok_metadata?: TikTokContent;
+  youtube_metadata?: YouTubeShortsContent;
+  thumbnail_metadata?: ThumbnailResult;
+}
+
 export interface VideoAnalysisResult {
   summary: string;
   key_hooks: string[];
@@ -8,9 +55,9 @@ export interface VideoAnalysisResult {
   pacing: string;
   target_audience: string;
   detected_topics: string[];
-  // Peak energy timestamp & climax analysis for high-CTR thumbnail alignment
   peak_energy_timestamp?: string;
   peak_visual_climax?: string;
+  extracted_clips?: ExtractedClip[];
 }
 
 export interface TikTokContent {
@@ -19,7 +66,6 @@ export interface TikTokContent {
   cta: string;
   hook_technique: string;
   viral_score_estimate: number;
-  // 2026 TikTok Algorithm & Search SEO Fields
   search_optimized_title?: string;
   on_screen_hook_3s?: string;
   spoken_keyword_script?: string;
@@ -45,7 +91,6 @@ export interface YouTubeShortsContent {
   chapters?: { time: string; title: string }[];
   search_keywords: string[];
   ctr_prediction: number;
-  // 2026 YouTube Shorts Algorithm & Search Engine Optimization Fields
   title_character_count?: number;
   frontloaded_hook_sentence?: string;
   description_sections?: {
@@ -68,6 +113,15 @@ export interface YouTubeShortsContent {
   seo_search_ranking_score?: number;
 }
 
+export interface SixSlotPrompt {
+  subject: string;
+  expression_action: string;
+  environment_background: string;
+  lighting_atmosphere: string;
+  style_medium: string;
+  technical_parameters: string;
+}
+
 export interface ThumbnailVariant {
   id: string;
   variant_type: 'EMOTION_FACE' | 'CURIOSITY_GAP' | 'MINIMAL_PUNCH';
@@ -77,9 +131,11 @@ export interface ThumbnailVariant {
   sub_badge: string;
   color_accent: string;
   prompt_used: string;
+  six_slot_breakdown?: SixSlotPrompt;
   thumbnail_url: string;
   ctr_prediction: number;
   focal_point_focus: string;
+  psychological_trigger?: string;
 }
 
 export interface ThumbnailScorecard {
@@ -105,7 +161,6 @@ export interface ThumbnailResult {
   best_practices_applied?: string[];
   source_frame_url?: string;
   image_model_used?: string;
-  // Multi-Variant A/B/C Concept Strategy & 5-Pillar Scorecard
   variants?: ThumbnailVariant[];
   selected_variant_index?: number;
   peak_energy_timestamp?: string;
@@ -139,6 +194,11 @@ export interface MediaPackageOutput {
   thumbnail_metadata: ThumbnailResult;
   audio_ducking_level: number;
   ffmpeg_command_executed: string;
+  // Multi-clip and Subtitles Support
+  clips?: ExtractedClip[];
+  selected_clip_id?: string;
+  subtitles?: SubtitleLine[];
+  subtitle_style?: SubtitleStylePreset;
   execution_metrics: {
     total_latency_ms: number;
     sequential_estimate_ms: number;
@@ -150,7 +210,7 @@ export interface MediaPackageOutput {
 
 export interface AgentLogEntry {
   id: string;
-  agentId: 'video_analyst' | 'tiktok_strategist' | 'yt_strategist' | 'art_director' | 'audio_director' | 'production_engineer';
+  agentId: string;
   agentName: string;
   role: string;
   phase: 1 | 2 | 3;
@@ -173,4 +233,32 @@ export interface SampleMedia {
   description: string;
   mockBpm: number;
   defaultMood: string;
+}
+
+// CrewAI Studio 2026 Interactive DAG Types
+export interface CustomAgentConfig {
+  id: string;
+  name: string;
+  role: string;
+  goal: string;
+  backstory: string;
+  task_description: string;
+  expected_output: string;
+  model: string;
+  temperature: number;
+  tools: string[];
+  phase: 1 | 2 | 3;
+  isEnabled: boolean;
+  isCustom?: boolean;
+  executionType: 'sequential' | 'async_fanout';
+}
+
+export interface SavedProject {
+  id: string;
+  name: string;
+  savedAt: string;
+  thumbnailUrl: string;
+  bundle: MediaPackageOutput;
+  model: string;
+  viralityScore: number;
 }

@@ -1,4 +1,5 @@
 import { musicSynth } from './audioSynth';
+import { SubtitleLine, SubtitleStylePreset } from '../types';
 
 export interface VideoExportOptions {
   videoSourceUrl?: string;
@@ -8,6 +9,8 @@ export interface VideoExportOptions {
   bpm?: number;
   durationSeconds?: number;
   filename?: string;
+  subtitles?: SubtitleLine[];
+  subtitleStyle?: SubtitleStylePreset;
   onProgress?: (progressPercent: number, statusMessage: string) => void;
 }
 
@@ -264,6 +267,121 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
         gradient.addColorStop(1, 'rgba(56, 189, 248, 0.1)');
         ctx.fillStyle = gradient;
         ctx.fillRect(b * barWidth + 2, height - h, barWidth - 4, h);
+      }
+
+      // Draw Burned-in Animated Subtitles
+      if (options.subtitles && options.subtitles.length > 0) {
+        const currentLine = options.subtitles.find(
+          (line) => elapsed >= line.start_ms && elapsed <= line.end_ms
+        ) || (elapsed < options.subtitles[0].start_ms ? options.subtitles[0] : options.subtitles[options.subtitles.length - 1]);
+
+        if (currentLine && currentLine.words && currentLine.words.length > 0) {
+          const style = options.subtitleStyle || 'hormozi';
+          const subY = height - 260;
+
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = '900 52px Impact, Montserrat, Arial Black, sans-serif';
+
+          // Measure total width of the line
+          const fullText = currentLine.words.map(w => w.text).join(' ') + (currentLine.emoji ? ' ' + currentLine.emoji : '');
+          
+          if (style === 'minimal') {
+            // Draw clean pill container
+            const textWidth = ctx.measureText(fullText).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            ctx.beginPath();
+            ctx.roundRect((width - textWidth) / 2 - 24, subY - 40, textWidth + 48, 80, 20);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          } else if (style === 'neon') {
+            // Draw glowing cyan container
+            const textWidth = ctx.measureText(fullText).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.beginPath();
+            ctx.roundRect((width - textWidth) / 2 - 28, subY - 44, textWidth + 56, 88, 24);
+            ctx.fill();
+            ctx.strokeStyle = '#06B6D4';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          }
+
+          // Calculate word offsets for centering
+          const totalWidth = ctx.measureText(fullText).width;
+          let currentX = (width - totalWidth) / 2;
+
+          currentLine.words.forEach((word, idx) => {
+            const isActive = elapsed >= word.start_ms && elapsed <= word.end_ms;
+            const wordSpacing = ' ' + word.text;
+            const wordWidth = ctx.measureText(word.text).width;
+            const spaceWidth = ctx.measureText(' ').width;
+
+            ctx.save();
+            ctx.textAlign = 'left';
+
+            if (style === 'hormozi') {
+              ctx.font = isActive 
+                ? '900 62px Impact, Montserrat, Arial Black, sans-serif' 
+                : '900 52px Impact, Montserrat, Arial Black, sans-serif';
+              
+              // Heavy black outline
+              ctx.lineWidth = 14;
+              ctx.strokeStyle = '#000000';
+              ctx.lineJoin = 'round';
+              ctx.miterLimit = 2;
+              ctx.strokeText(word.text.toUpperCase(), currentX, subY);
+
+              // Fill
+              ctx.fillStyle = isActive ? '#FDE047' : '#FFFFFF';
+              ctx.fillText(word.text.toUpperCase(), currentX, subY);
+
+            } else if (style === 'mrbeast') {
+              const colorPalette = ['#22D3EE', '#FACC15', '#34D399', '#FB7185'];
+              const wordColor = colorPalette[idx % colorPalette.length];
+
+              ctx.font = isActive 
+                ? '900 64px Impact, Montserrat, Arial Black, sans-serif' 
+                : '900 52px Impact, Montserrat, Arial Black, sans-serif';
+
+              ctx.lineWidth = 16;
+              ctx.strokeStyle = '#000000';
+              ctx.lineJoin = 'round';
+              ctx.strokeText(word.text.toUpperCase(), currentX, subY);
+
+              ctx.fillStyle = isActive ? wordColor : '#FFFFFF';
+              ctx.fillText(word.text.toUpperCase(), currentX, subY);
+
+            } else if (style === 'neon') {
+              ctx.font = '800 48px monospace, Impact, sans-serif';
+              ctx.fillStyle = isActive ? '#F472B6' : '#67E8F9';
+              ctx.shadowColor = isActive ? '#EC4899' : '#06B6D4';
+              ctx.shadowBlur = isActive ? 20 : 8;
+              ctx.fillText(word.text.toUpperCase(), currentX, subY);
+
+            } else {
+              // Minimal
+              ctx.font = '700 44px system-ui, -apple-system, sans-serif';
+              ctx.fillStyle = isActive ? '#FBBF24' : '#FFFFFF';
+              ctx.fillText(word.text, currentX, subY);
+            }
+
+            ctx.restore();
+            currentX += wordWidth + spaceWidth;
+          });
+
+          // Draw emoji if present
+          if (currentLine.emoji) {
+            ctx.save();
+            ctx.font = '48px system-ui, sans-serif';
+            ctx.fillText(currentLine.emoji, currentX, subY);
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
       }
 
       if (elapsed >= exportDurationMs) {
