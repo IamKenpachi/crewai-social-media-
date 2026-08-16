@@ -1002,7 +1002,7 @@ Return strictly JSON.`;
         console.warn('Agent 4A Focal Analyst fallback:', e);
       }
 
-      // Step 2: Agent 4B - Visual Concept Artist & gemini-3-pro-image Architect
+      // Step 2: Agent 4B - Visual Concept Artist & gemini-3-pro-image Prompt Architect
       const prompt = `You are Agent 4B: Senior Visual Concept Artist & gemini-3-pro-image Prompt Architect.
 Using the Focal Analysis:
 - Subject: ${focalData.primary_subject}
@@ -1013,21 +1013,21 @@ Using the Focal Analysis:
 - Media Title: "${mediaTitle}"
 - Aspect Ratio: ${aspectRatio}
 
-Construct 3 completely distinct, studio-grade visual concepts engineered specifically for 'gemini-3-pro-image'.
-Apply YouTube Shorts Gold-Standard Principles:
-1. High-contrast isolated subject with dramatic 3D rim-lighting/halo (${focalData.rim_color}) separating them from the dark background.
-2. Contextual 3D floating story props (e.g., floating money bundles with doodle arrows, explosive fire embers, torn paper popout border, 3D glowing icons).
-3. The top 30% of the frame MUST have clean negative space reserved for large stacked typography.
-4. Descriptive natural language prompts (Subject + Emotion + Action + Environment + Rim-Lighting + Composition).
+Construct 3 completely distinct, studio-grade visual prompts engineered specifically for 'gemini-3-pro-image'.
+CRITICAL REQUIREMENT: Instruct the image model to PAINT THE BOLD HEADLINE TEXT DIRECTLY INSIDE THE GENERATED IMAGE at the top of the frame.
+- Put the exact text in quotation marks (e.g. at the top of the image in giant bold 3D stylized letters, render the text "PASSIVE INCOME").
+- High-contrast isolated subject with dramatic 3D rim-lighting/halo (${focalData.rim_color}) separating them from the dark background.
+- Contextual 3D floating story props (e.g., floating money bundles with doodle arrows, explosive fire embers, torn paper popout border).
+- Descriptive natural language prompt.
 
 For each of the 3 variants:
-- Variant A (EMOTION_FACE): High-energy reaction shot with explosive rim lighting and particle sparks.
-- Variant B (CURIOSITY_GAP): 3D floating story prop / mystery dilemma with hand-drawn visual pointers.
-- Variant C (MINIMAL_PUNCH): Iconic high-contrast hero silhouette on deep matte cinematic background.
+- Variant A (EMOTION_FACE): High-energy reaction shot with text like "WAIT FOR IT" or "SHOCKING" rendered natively in the image.
+- Variant B (CURIOSITY_GAP): 3D floating story props with text like "THE SECRET" or "PASSIVE INCOME" rendered natively in the image.
+- Variant C (MINIMAL_PUNCH): Iconic high-contrast hero silhouette with text like "THE 1% HACK" rendered natively in the image.
 
 Provide for each variant:
-- image_generation_prompt: Rich, detailed descriptive prompt for gemini-3-pro-image.
-- headline_overlay: 2-3 word stacked curiosity hook (Line 1 in Accent Color, Line 2 in White).
+- image_generation_prompt: Rich, detailed descriptive prompt for gemini-3-pro-image with the text in quotes.
+- headline_overlay: 2-3 word uppercase hook.
 - sub_badge: 1-2 word urgency badge.
 - 5-Pillar Scorecard.
 
@@ -1035,9 +1035,9 @@ Return strictly JSON conforming to the schema.`;
 
       let variantsData: any[] = [];
       let scorecardData: any = null;
-      let primaryThumbPrompt = `Photorealistic cinematic 8k portrait of ${focalData.primary_subject}, ${focalData.emotional_expression}, dramatic ${focalData.rim_color} rim lighting highlighting the hair and shoulders, blurred dark background, top 30% vertical negative space reserved for bold text, ${focalData.context_props}, 85mm lens, high contrast, ${aspectRatio} aspect ratio.`;
-      let styleTheme = 'Cinematic studio photography with high-intensity 3D rim lighting and top negative space';
-      let primaryHeadline = 'SECRET REVEALED ⚡';
+      let primaryHeadline = 'SECRET REVEALED';
+      let primaryThumbPrompt = `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top of the image in giant bold 3D stylized typography is the text "${primaryHeadline}" in bright yellow and white with heavy drop shadow. The scene features ${focalData.primary_subject}, ${focalData.emotional_expression}, dramatic ${focalData.rim_color} rim lighting, ${focalData.context_props}, blurred dark background, 85mm lens, sharp focus.`;
+      let styleTheme = 'Cinematic studio photography with native in-image 3D typography and rim lighting';
       let primaryBadge = '★ MUST WATCH';
       let primaryAccent = focalData.rim_color || '#FACC15';
       let primaryCtr = 19.4;
@@ -1060,12 +1060,12 @@ Return strictly JSON conforming to the schema.`;
           model: targetModel,
           contents: contentsParts,
           config: {
-            systemInstruction: 'You are an elite YouTube Shorts art director designing high-CTR visual assets for gemini-3-pro-image.',
+            systemInstruction: 'You are an elite YouTube Shorts art director designing high-CTR visual assets for gemini-3-pro-image with text rendered natively in the image.',
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
               properties: {
-                primary_prompt_for_gemini_image: { type: Type.STRING, description: 'Descriptive prompt for gemini-3-pro-image with rim-lighting and top negative space.' },
+                primary_prompt_for_gemini_image: { type: Type.STRING, description: 'Descriptive prompt for gemini-3-pro-image with text in quotes rendered at top of image.' },
                 visual_style: { type: Type.STRING },
                 variants: {
                   type: Type.ARRAY,
@@ -1076,7 +1076,7 @@ Return strictly JSON conforming to the schema.`;
                       variant_type: { type: Type.STRING },
                       title: { type: Type.STRING },
                       concept_description: { type: Type.STRING },
-                      image_generation_prompt: { type: Type.STRING, description: 'Detailed natural language prompt for gemini-3-pro-image' },
+                      image_generation_prompt: { type: Type.STRING, description: 'Detailed natural language prompt with text in quotes for gemini-3-pro-image' },
                       headline_overlay: { type: Type.STRING, description: '2-4 word uppercase hook' },
                       sub_badge: { type: Type.STRING },
                       color_accent: { type: Type.STRING },
@@ -1129,8 +1129,8 @@ Return strictly JSON conforming to the schema.`;
             variant_type: 'EMOTION_FACE',
             title: 'Variant A: High Emotion & Reaction Shot',
             concept_description: 'Exaggerated facial expression with intense crimson rim-lighting and particle embers (+42% curiosity click lift).',
-            image_generation_prompt: `Cinematic portrait of ${focalData.primary_subject}, ${focalData.emotional_expression}, dramatic red and orange rim lighting, flying fire embers, blurred dark background, top negative space, 85mm lens, 8k render, ${aspectRatio} aspect ratio`,
-            headline_overlay: 'WAIT FOR IT ⚠️',
+            image_generation_prompt: `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top in bold 3D red and white text reads "WAIT FOR IT". The scene features ${focalData.primary_subject}, ${focalData.emotional_expression}, dramatic red and orange rim lighting, flying fire embers, blurred dark background, 85mm lens`,
+            headline_overlay: 'WAIT FOR IT',
             sub_badge: '⚡ SHOCKING',
             color_accent: '#EF4444',
             ctr_prediction: 19.2,
@@ -1141,8 +1141,8 @@ Return strictly JSON conforming to the schema.`;
             variant_type: 'CURIOSITY_GAP',
             title: 'Variant B: 3D Floating Props & Story Dilemma',
             concept_description: 'Subject holding floating 3D props with glowing electric gold rim-light and hand-drawn doodle arrows.',
-            image_generation_prompt: `High-impact portrait of ${focalData.primary_subject} looking directly at camera, holding ${focalData.context_props}, glowing yellow rim lighting, dark moody background, top 30% clean space for text, photorealistic, ${aspectRatio} aspect ratio`,
-            headline_overlay: 'SECRET REVEALED ⚡',
+            image_generation_prompt: `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top in giant bold yellow and white 3D letters reads "THE SECRET". The scene features ${focalData.primary_subject} holding ${focalData.context_props}, glowing yellow rim lighting, dark background, 85mm lens`,
+            headline_overlay: 'THE SECRET',
             sub_badge: '★ MUST WATCH',
             color_accent: '#FACC15',
             ctr_prediction: 20.8,
@@ -1153,8 +1153,8 @@ Return strictly JSON conforming to the schema.`;
             variant_type: 'MINIMAL_PUNCH',
             title: 'Variant C: Iconic Hero Silhouette on Matte Black',
             concept_description: 'Single high-contrast subject with vibrant cyber cyan edge glow, engineered for instant mobile comprehension.',
-            image_generation_prompt: `Minimalist iconic hero silhouette of ${focalData.primary_subject}, glowing cyan #38BDF8 edge halo, deep matte black background, studio lighting, ${aspectRatio} aspect ratio`,
-            headline_overlay: 'THE 1% HACK 🎯',
+            image_generation_prompt: `Photorealistic 8K cinematic YouTube thumbnail, ${aspectRatio} aspect ratio. Prominently rendered at the top in bold cyan letters reads "THE 1% HACK". The scene features minimalist iconic hero silhouette of ${focalData.primary_subject}, glowing cyan #38BDF8 edge halo, deep matte black background`,
+            headline_overlay: 'THE 1% HACK',
             sub_badge: 'PRO TIP',
             color_accent: '#38BDF8',
             ctr_prediction: 17.8,
@@ -1172,13 +1172,13 @@ Return strictly JSON conforming to the schema.`;
           text_economy_pass: true,
           safe_zone_audit_pass: true,
           psychological_triggers: [
-            'Top-Loaded 2-Tone Stacked Typography (Yellow + White)',
+            'Native In-Image 3D Typography (Yellow + White)',
             'Subject Rim-Lighting Separation',
-            'Contextual 3D Floating Props & Doodle Pointers',
-            'Zero Obstruction on Subject Face/Body'
+            'Contextual 3D Floating Props',
+            'Zero Synthetic Overlay Artifacts'
           ],
           recommendations: [
-            'Top 30% text positioning ensures subject and action remain 100% visible',
+            'Text is rendered natively inside the AI image via gemini-3-pro-image',
             'Electric Yellow (#FACC15) / Crimson (#EF4444) rim-lighting cuts through YouTube dark mode feeds',
             'Safe zones fully respected: bottom-right duration stamp has 0% overlap'
           ]
@@ -1212,31 +1212,19 @@ Return strictly JSON conforming to the schema.`;
 
       const effectiveBaseFrame = generatedAiImageBase64 || sourceFrame;
 
-      // Step 4: Agent 4C - Studio Compositor (4-Layer High-CTR Asset Assembly)
+      // Render variants as pure images
       const renderedVariants = variantsData.map((v, idx) => {
         const vPrompt = v.image_generation_prompt || primaryThumbPrompt;
-        
-        // Generate high-CTR 4-layer thumbnail asset (clean AI base + top 2-tone typography)
-        const vUrl = effectiveBaseFrame || generateProceduralThumbnailUrl(
-          mediaTitle || 'VIRAL MASTERPIECE',
-          briefResult.mood_and_tone,
-          v.color_accent,
-          aspectRatio as '9:16' | '16:9',
-          effectiveBaseFrame,
-          v.sub_badge || '★ MUST WATCH',
-          v.headline_overlay || primaryHeadline,
-          v.variant_type as any,
-          v.focal_point_focus || briefResult.mood_and_tone
-        );
+        const vUrl = effectiveBaseFrame;
 
         // Six-Slot breakdown architecture
         const sixSlot: any = {
           subject: focalData.primary_subject,
           expression_action: focalData.emotional_expression,
-          environment_background: 'Deep cinematic bokeh backdrop with 30% top negative space',
+          environment_background: 'Deep cinematic bokeh backdrop',
           lighting_atmosphere: `3D rim-lighting in ${v.color_accent || '#FACC15'} with dark contrast separation`,
           style_medium: 'Hyper-detailed cinematic photography, 8K resolution, sharp focus',
-          technical_parameters: `Rule of thirds, top text placement, --ar ${aspectRatio}, clean safe zones`
+          technical_parameters: `Native in-image 3D typography, --ar ${aspectRatio}`
         };
 
         return {
@@ -1272,11 +1260,10 @@ Return strictly JSON conforming to the schema.`;
         color_accent: primaryAccent,
         ctr_prediction: primaryCtr,
         best_practices_applied: [
-          'Multi-Agent Visual Pipeline (Agent 4A Focal Analyst + 4B gemini-3-pro-image Architect + 4C Compositor)',
-          'Top-Loaded 2-Tone Stacked Typography (Electric Accent + White)',
+          'Native In-Image Typography (Prompted with quotes in gemini-3-pro-image)',
           'High-Intensity 3D Rim Lighting for Subject Separation',
-          'Contextual 3D Floating Props & Hand-Drawn Doodle Arrows',
-          'Zero Obstruction on Subject Face / Body',
+          'Contextual 3D Floating Props & Atmosphere',
+          'Zero Synthetic SVG Layers or Overlays',
           'Bottom-Right YouTube Duration Safe Zone Protection'
         ],
         source_frame_url: effectiveBaseFrame,
@@ -1295,13 +1282,13 @@ Return strictly JSON conforming to the schema.`;
           id: 'log-4',
           agentId: 'art_director',
           agentName: 'Agent 4: Multi-Agent Visual Studio (gemini-3-pro-image)',
-          role: 'Visual Perception, AI Image Architecture & Compositing',
+          role: 'Visual Perception, AI Image Architecture & In-Image Typography',
           phase: 2,
           status: 'completed',
-          toolUsed: 'gemini-3-pro-image + 4-Layer Studio Compositor',
+          toolUsed: 'gemini-3-pro-image (Native Typography)',
           durationMs: taskEnd - taskStart,
           timestamp: new Date().toLocaleTimeString(),
-          outputSummary: `Generated 3 top-tier thumbnails via gemini-3-pro-image with rim-lighting (${focalData.rim_color}), top stacked typography, and 3D props (${scorecardData.overall_grade}).`,
+          outputSummary: `Generated 3 top-tier thumbnails via gemini-3-pro-image with in-image text ("${primaryHeadline}") and rim-lighting (${focalData.rim_color}).`,
           rawOutput: thumbOutput
         }
       };
