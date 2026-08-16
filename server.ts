@@ -1752,68 +1752,47 @@ app.post('/api/generate-thumbnail', async (req, res) => {
     const ai = getGeminiClient(customKey);
     let thumbnailUrl = '';
 
-    // Strategy 1: Try Imagen 3 Image Generation via Google GenAI SDK
+    // Strategy 1: Multimodal image generation via generateContent (Gemini Image models)
     try {
-      const imgGenResp = await (ai.models as any).generateImages({
-        model: 'imagen-3.0-generate-002',
-        prompt: `High-CTR YouTube Shorts thumbnail, 8k cinematic photography, ${aspectRatio} aspect ratio, dramatic lighting: ${prompt}`,
+      const imgParts: any[] = [];
+      if (sourceFrame && sourceFrame.includes('base64,')) {
+        const match = sourceFrame.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          imgParts.push({
+            inlineData: {
+              mimeType: match[1],
+              data: match[2]
+            }
+          });
+        }
+      }
+      
+      const fullPrompt = sourceFrame
+        ? `Generate a viral YouTube Shorts thumbnail using the picture attached. Make it catchy, high-CTR, and visually stunning. ${prompt}. Aspect ratio: ${aspectRatio}.`
+        : `YouTube thumbnail, ${aspectRatio} aspect ratio, high contrast, cinematic, vibrant colors: ${prompt}`;
+
+      imgParts.push({ text: fullPrompt });
+
+      const imgResp = await ai.models.generateContent({
+        model: 'gemini-3-pro-image',
+        contents: {
+          parts: imgParts
+        },
         config: {
-          numberOfImages: 1,
-          aspectRatio: aspectRatio === '16:9' ? '16:9' : '9:16',
-          outputMimeType: 'image/jpeg'
+          imageConfig: {
+            aspectRatio: aspectRatio as '9:16' | '16:9'
+          }
         }
       });
 
-      if (imgGenResp?.generatedImages?.[0]?.image?.imageBytes) {
-        thumbnailUrl = `data:image/jpeg;base64,${imgGenResp.generatedImages[0].image.imageBytes}`;
-      }
-    } catch (imagenErr: any) {
-      console.warn('Imagen 3 fallback:', imagenErr?.message);
-    }
-
-    // Strategy 2: Try multimodal gemini-3-pro-image if Imagen 3 wasn't available
-    if (!thumbnailUrl) {
-      try {
-        const imgParts: any[] = [];
-        if (sourceFrame && sourceFrame.includes('base64,')) {
-          const match = sourceFrame.match(/^data:([^;]+);base64,(.+)$/);
-          if (match) {
-            imgParts.push({
-              inlineData: {
-                mimeType: match[1],
-                data: match[2]
-              }
-            });
-          }
+      for (const part of imgResp.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData?.data) {
+          thumbnailUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
         }
-        
-        const fullPrompt = sourceFrame
-          ? `Generate a YouTube Short thumbnail using the picture attached. Make it catchy, viral, high-CTR, and visually stunning. ${prompt}. Aspect ratio: ${aspectRatio}.`
-          : `YouTube thumbnail, ${aspectRatio} aspect ratio, high contrast, cinematic: ${prompt}`;
-
-        imgParts.push({ text: fullPrompt });
-
-        const imgResp = await ai.models.generateContent({
-          model: 'gemini-3-pro-image',
-          contents: {
-            parts: imgParts
-          },
-          config: {
-            imageConfig: {
-              aspectRatio: aspectRatio as '9:16' | '16:9'
-            }
-          }
-        });
-
-        for (const part of imgResp.candidates?.[0]?.content?.parts || []) {
-          if (part.inlineData?.data) {
-            thumbnailUrl = `data:image/png;base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-      } catch (e: any) {
-        console.warn('gemini-3-pro-image fallback:', e?.message);
       }
+    } catch (e: any) {
+      // Graceful fallback to procedural graphic engine
     }
 
     // Strategy 3: Dynamic high-CTR procedural composite with bold typography & accent glow
