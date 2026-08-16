@@ -407,6 +407,48 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     });
   };
 
+  // Download active thumbnail as an image file (PNG, JPG, or SVG)
+  const handleDownloadThumbnail = () => {
+    const thumbUrl = activeThumbnailUrl || bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url;
+    if (!thumbUrl) {
+      alert('No thumbnail image available to download.');
+      return;
+    }
+
+    const safeFilename = `${activeClip.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_thumbnail_${thumbAspect.replace(':', '_')}`;
+
+    if (thumbUrl.startsWith('data:image/svg+xml')) {
+      const svgData = decodeURIComponent(thumbUrl.replace('data:image/svg+xml;utf8,', ''));
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      triggerFileDownload(blob, `${safeFilename}.svg`);
+      triggerExportConfetti();
+    } else if (thumbUrl.startsWith('data:image/')) {
+      const match = thumbUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      const ext = match ? (match[1] === 'jpeg' ? 'jpg' : match[1]) : 'png';
+      const base64Data = match ? match[2] : thumbUrl.split(',')[1];
+      const byteChars = atob(base64Data);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: `image/${ext}` });
+      triggerFileDownload(blob, `${safeFilename}.${ext}`);
+      triggerExportConfetti();
+    } else {
+      const a = document.createElement('a');
+      a.href = thumbUrl;
+      a.download = `${safeFilename}.png`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (a.parentNode) document.body.removeChild(a);
+      }, 500);
+      triggerExportConfetti();
+    }
+  };
+
   // Subtitle line update handler
   const handleUpdateSubtitleLine = (lineId: string, newText: string, emoji?: string) => {
     setCurrentSubtitles(prev => prev.map(line => {
@@ -916,6 +958,15 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                   <span>AI Thumbnail Studio</span>
                 </span>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDownloadThumbnail}
+                    id="btn-download-thumbnail-top"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 text-xs font-black shadow-xs cursor-pointer transition-all"
+                    title="Download high-resolution thumbnail image"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Thumbnail</span>
+                  </button>
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     {bundle.thumbnail_metadata?.scorecard?.overall_grade || 'A+ (98/100)'}
                   </span>
@@ -936,8 +987,8 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 </div>
               </div>
 
-              {/* Rendered Thumbnail Asset (Clean AI Image without forced ugly boxes) */}
-              <div className={`relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-md bg-slate-950 mx-auto ${
+              {/* Rendered Thumbnail Asset with Hover Download Overlay */}
+              <div className={`group relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-md bg-slate-950 mx-auto ${
                 thumbAspect === '9:16' ? 'aspect-[9/16] max-h-[500px]' : 'aspect-[16/9] w-full max-h-[380px]'
               }`}>
                 <img
@@ -945,6 +996,32 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                   alt="AI Thumbnail"
                   className="w-full h-full object-cover"
                 />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none group-hover:pointer-events-auto">
+                  <button
+                    onClick={handleDownloadThumbnail}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Image ({thumbAspect})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Row Under Thumbnail */}
+              <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Thumbnail Ready:</span>
+                  <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                    {thumbAspect === '9:16' ? '1080x1920 (Vertical Shorts)' : '1920x1080 (Landscape HD)'}
+                  </span>
+                </div>
+                <button
+                  onClick={handleDownloadThumbnail}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black shadow-xs cursor-pointer transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Image</span>
+                </button>
               </div>
 
               {/* 3-Variant Concept Switcher */}
@@ -1136,33 +1213,127 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 </div>
               </div>
 
-              {/* 3-3-3 Hashtag Framework */}
+              {/* 3-3-3 Hashtag Framework with Copy All & Category Copy */}
               <div className="flex flex-col gap-2 pt-2">
-                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  The "3-3-3" Strategic Hashtag Framework:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>The "3-3-3" Strategic Hashtag Framework:</span>
+                  </label>
+                  <button
+                    onClick={() => {
+                      const allTags = [
+                        ...(bundle.tiktok_metadata?.hashtag_breakdown?.trending || []),
+                        ...(bundle.tiktok_metadata?.hashtag_breakdown?.niche_community || []),
+                        ...(bundle.tiktok_metadata?.hashtag_breakdown?.content_specific || []),
+                        ...(bundle.tiktok_metadata?.hashtags || [])
+                      ];
+                      const uniqueTags = Array.from(new Set(allTags.map(t => t.startsWith('#') ? t : `#${t}`))).join(' ');
+                      handleCopy(uniqueTags || '#trending #viral #fyp', 'tt-all-hashtags');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 dark:bg-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold transition-all cursor-pointer"
+                    title="Copy all 9 hashtags to clipboard"
+                  >
+                    {copiedKey === 'tt-all-hashtags' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400">Copied All Hashtags!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy All Hashtags</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">3 Trending Broad:</span>
+                  {/* Category 1: Trending */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">3 Trending Broad:</span>
+                      <button
+                        onClick={() => {
+                          const tags = (bundle.tiktok_metadata?.hashtag_breakdown?.trending || []).map(t => t.startsWith('#') ? t : `#${t}`).join(' ');
+                          handleCopy(tags, 'tt-tags-trending');
+                        }}
+                        className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Copy trending broad tags"
+                      >
+                        {copiedKey === 'tt-tags-trending' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        <span>Copy</span>
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {bundle.tiktok_metadata?.hashtag_breakdown?.trending?.map((t, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-[10px]">{t}</span>
+                        <button
+                          key={i}
+                          onClick={() => handleCopy(t.startsWith('#') ? t : `#${t}`, `tt-tag-t-${i}`)}
+                          className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/70 text-blue-700 dark:text-blue-300 font-bold text-[10px] cursor-pointer transition-colors border border-blue-200/60 dark:border-blue-800"
+                          title="Click to copy tag"
+                        >
+                          {copiedKey === `tt-tag-t-${i}` ? '✓ Copied' : t}
+                        </button>
                       ))}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">3 Niche Community:</span>
+
+                  {/* Category 2: Niche */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">3 Niche Community:</span>
+                      <button
+                        onClick={() => {
+                          const tags = (bundle.tiktok_metadata?.hashtag_breakdown?.niche_community || []).map(t => t.startsWith('#') ? t : `#${t}`).join(' ');
+                          handleCopy(tags, 'tt-tags-niche');
+                        }}
+                        className="text-[10px] font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Copy niche community tags"
+                      >
+                        {copiedKey === 'tt-tags-niche' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        <span>Copy</span>
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {bundle.tiktok_metadata?.hashtag_breakdown?.niche_community?.map((t, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold text-[10px]">{t}</span>
+                        <button
+                          key={i}
+                          onClick={() => handleCopy(t.startsWith('#') ? t : `#${t}`, `tt-tag-n-${i}`)}
+                          className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/40 hover:bg-purple-100 dark:hover:bg-purple-900/70 text-purple-700 dark:text-purple-300 font-bold text-[10px] cursor-pointer transition-colors border border-purple-200/60 dark:border-purple-800"
+                          title="Click to copy tag"
+                        >
+                          {copiedKey === `tt-tag-n-${i}` ? '✓ Copied' : t}
+                        </button>
                       ))}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">3 Content Specific:</span>
+
+                  {/* Category 3: Content Specific */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">3 Content Specific:</span>
+                      <button
+                        onClick={() => {
+                          const tags = (bundle.tiktok_metadata?.hashtag_breakdown?.content_specific || []).map(t => t.startsWith('#') ? t : `#${t}`).join(' ');
+                          handleCopy(tags, 'tt-tags-content');
+                        }}
+                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Copy content specific tags"
+                      >
+                        {copiedKey === 'tt-tags-content' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        <span>Copy</span>
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {bundle.tiktok_metadata?.hashtag_breakdown?.content_specific?.map((t, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">{t}</span>
+                        <button
+                          key={i}
+                          onClick={() => handleCopy(t.startsWith('#') ? t : `#${t}`, `tt-tag-c-${i}`)}
+                          className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/70 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] cursor-pointer transition-colors border border-emerald-200/60 dark:border-emerald-800"
+                          title="Click to copy tag"
+                        >
+                          {copiedKey === `tt-tag-c-${i}` ? '✓ Copied' : t}
+                        </button>
                       ))}
                     </div>
                   </div>
