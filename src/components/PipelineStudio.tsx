@@ -223,20 +223,19 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
   return (
     <div id="pipeline-studio-root" className="w-full flex flex-col gap-6">
       
-      {/* Top Executive Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 relative overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 CrewAI Live Multi-Agent Execution Studio
               </span>
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Autonomous Social Media Production Studio
             </h2>
-            <p className="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
               Feed raw media into the Crew. Watch 1 Ingestion Agent analyze narrative beats via Gemini, then 4 Async Agents concurrently generate viral TikTok copy, YouTube SEO, Imagen thumbnails, and Lyria soundtracks.
             </p>
           </div>
@@ -245,10 +244,10 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
             {hasResults && (
               <button
                 onClick={onViewResults}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 transition-all shadow-xs"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all shadow-xs cursor-pointer"
               >
                 <span>View Generated Package</span>
-                <ChevronRight className="w-4 h-4 text-blue-600" />
+                <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </button>
             )}
 
@@ -274,17 +273,12 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
         </div>
       </div>
 
-      {/* Main Studio 2-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Media Input & Configuration (7 cols) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          
-          {/* Media Source & Custom Upload */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Film className="w-4 h-4 text-blue-600" />
+                <Film className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>1. Upload Media Input</span>
               </span>
 
@@ -292,7 +286,7 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
                 <button
                   type="button"
                   onClick={handleClearUpload}
-                  className="text-[11px] text-slate-400 hover:text-rose-600 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  className="text-[11px] text-slate-400 hover:text-rose-500 font-bold transition-colors cursor-pointer flex items-center gap-1"
                 >
                   <X className="w-3.5 h-3.5" />
                   <span>Remove Media</span>
@@ -300,7 +294,6 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
               )}
             </div>
 
-            {/* Custom Upload Dropzone */}
             <div className="flex flex-col gap-3">
               <label 
                 onDragOver={handleDragOver}
@@ -308,317 +301,145 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
                 onDrop={handleDrop}
                 className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
                   isDragging 
-                    ? 'border-blue-500 bg-blue-50/70 scale-[0.99]' 
+                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40 scale-[0.99]' 
                     : uploadedImageBase64
-                      ? 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
-                      : 'border-slate-300 hover:border-blue-500 bg-slate-50/80 hover:bg-blue-50/30'
+                      ? 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/80 dark:bg-slate-800/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/30'
                 }`}
               >
-                <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 mb-3 shadow-2xs">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3 shadow-2xs">
                   <Upload className="w-6 h-6" />
                 </div>
-                <span className="text-sm font-bold text-slate-800 text-center">
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-200 text-center">
                   {uploadedImageBase64 ? 'Click or drop to replace media file' : 'Click or drag & drop to upload media'}
                 </span>
                 <span className="text-xs text-slate-400 mt-1 text-center">
                   MP4, WebM, PNG, JPG, GIF (Video frames or visual clips up to 50MB)
                 </span>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+                <input type="file" accept="image/*,video/*" onChange={handleFileUpload} className="hidden" />
               </label>
 
               {isProcessingVideo && (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3 animate-pulse">
-                  <RefreshCw className="w-5 h-5 text-amber-600 animate-spin" />
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center gap-3 animate-pulse">
+                  <RefreshCw className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-spin" />
                   <div className="text-xs">
-                    <span className="font-bold text-amber-900 block">Slicing Video at 1 Frame Per Second...</span>
-                    <span className="text-amber-700 text-[11px]">Extracting time-indexed keyframes for Lyria audio scoring</span>
+                    <span className="font-bold text-amber-900 dark:text-amber-200 block">Slicing Video at 1 Frame Per Second...</span>
+                    <span className="text-amber-700 dark:text-amber-400 text-[11px]">Extracting time-indexed keyframes for Lyria audio scoring</span>
                   </div>
                 </div>
               )}
 
               {uploadedImageBase64 && !isProcessingVideo && (
-                <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200 flex items-center justify-between gap-3">
+                <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={uploadedImageBase64}
-                      alt="Uploaded frame"
-                      className="w-16 h-16 rounded-lg object-cover border border-blue-200 shadow-2xs bg-white"
-                    />
+                    <img src={uploadedImageBase64} alt="Uploaded frame" className="w-16 h-16 rounded-lg object-cover border border-blue-200 dark:border-blue-800 shadow-2xs bg-white dark:bg-slate-900" />
                     <div className="text-xs">
-                      <span className="font-bold text-blue-950 block truncate max-w-xs sm:max-w-md">
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block truncate max-w-xs sm:max-w-md">
                         {uploadedFileName || 'Custom Media Asset'}
                       </span>
-                      {videoFrames.length > 0 ? (
-                        <span className="text-emerald-700 text-[11px] font-semibold flex items-center gap-1 mt-0.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Sliced {videoFrames.length} keyframes (1 FPS) for Lyria Multimodal Conditioning
-                        </span>
-                      ) : (
-                        <span className="text-emerald-700 text-[11px] font-semibold flex items-center gap-1 mt-0.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Ready for Gemini Multimodal Analysis & Lyria Scoring
-                        </span>
-                      )}
+                      <span className="text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold flex items-center gap-1 mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Ready for Gemini Multimodal Analysis
+                      </span>
                     </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleClearUpload}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-                    title="Remove file"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {/* Sliced Frames Thumbnails Strip */}
-              {videoFrames.length > 1 && (
-                <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-                    <span>1 FPS Frame Sequence ({videoFrames.length} frames / ~{videoFrames.length}s):</span>
-                    <span className="text-blue-600 font-mono text-[10px]">Ready for Lyria 3</span>
-                  </div>
-                  <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-                    {videoFrames.slice(0, 16).map((frame, idx) => (
-                      <div key={idx} className="relative flex-shrink-0">
-                        <img
-                          src={frame}
-                          alt={`Frame ${idx}`}
-                          className="w-12 h-12 rounded-md object-cover border border-slate-300 shadow-2xs"
-                        />
-                        <span className="absolute bottom-0.5 right-0.5 px-1 rounded bg-black/70 text-[8px] font-mono text-white">
-                          {idx}s
-                        </span>
-                      </div>
-                    ))}
-                    {videoFrames.length > 16 && (
-                      <div className="w-12 h-12 rounded-md bg-slate-200 border border-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">
-                        +{videoFrames.length - 16}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Custom Title & Description Inputs */}
             <div className="grid grid-cols-1 gap-3 pt-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider">
-                  Media Title / Topic:
-                </label>
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="e.g. Cyberpunk Drone Shot, Product Showcase, Tech Unboxing"
-                  className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-medium transition-all"
-                />
+                <label className="text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-wider">Media Title / Topic:</label>
+                <input type="text" value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} placeholder="e.g. Cyberpunk Drone Shot" className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-medium transition-all" />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider">
-                  Video Notes / Context (Optional):
-                </label>
-                <textarea
-                  value={customDescription}
-                  onChange={(e) => setCustomDescription(e.target.value)}
-                  placeholder="Provide any key moments, hooks, or context you want the multimodal agent to emphasize..."
-                  rows={2}
-                  className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-medium transition-all resize-none"
-                />
+                <label className="text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-wider">Video Notes / Context (Optional):</label>
+                <textarea value={customDescription} onChange={(e) => setCustomDescription(e.target.value)} placeholder="Key moments or hooks..." rows={2} className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-medium transition-all resize-none" />
               </div>
             </div>
           </div>
 
-          {/* Pipeline Parameters & Agent Tuning */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-600" />
+                <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>2. Crew AI Parameters &amp; Tool Bindings</span>
               </span>
 
               {onOpenApiSettings && (
-                <button
-                  type="button"
-                  onClick={onOpenApiSettings}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-all cursor-pointer shadow-2xs"
-                  title="Configure Gemini API Key & Parameters"
-                >
+                <button type="button" onClick={onOpenApiSettings} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-blue-600 dark:text-blue-400 transition-all cursor-pointer">
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>API &amp; Key Settings</span>
-                  {hasCustomKey && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  )}
+                  <span>API Settings</span>
                 </button>
               )}
             </div>
 
-            {/* Model Selector Bar */}
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                   <Cpu className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-800">Primary Reasoning Model:</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
-                      Gemini
-                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Primary Reasoning Model:</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">Gemini</span>
                   </div>
-                  <span className="text-[11px] text-slate-500 block">
-                    Used across Multimodal Ingestion, Viral Copy, SEO &amp; Audio planning
-                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <select
-                  id="studio-gemini-model-select"
-                  value={selectedModel}
-                  onChange={(e) => onSelectModel && onSelectModel(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
-                >
-                  {AVAILABLE_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.speed})
-                    </option>
-                  ))}
-                </select>
-
-                {onOpenApiSettings && (
-                  <button
-                    type="button"
-                    onClick={onOpenApiSettings}
-                    className="p-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 hover:text-blue-600 transition-colors cursor-pointer shadow-2xs"
-                    title="Open API Key & Model parameters modal"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <select id="studio-gemini-model-select" value={selectedModel} onChange={(e) => onSelectModel && onSelectModel(e.target.value)} className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-600 cursor-pointer shadow-2xs">
+                {AVAILABLE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              
-              {/* BPM Override */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider">BPM Tempo Override:</label>
-                <input
-                  type="number"
-                  value={bpmOverride}
-                  onChange={(e) => setBpmOverride(e.target.value ? parseInt(e.target.value) : '')}
-                  placeholder="Auto from video frames"
-                  className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-medium transition-all"
-                />
+                <label className="text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-wider">BPM Override:</label>
+                <input type="number" value={bpmOverride} onChange={(e) => setBpmOverride(e.target.value ? parseInt(e.target.value) : '')} className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
               </div>
 
-              {/* Target Aspect Ratio */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider">Aspect Ratio:</label>
-                <div className="flex rounded-xl bg-slate-100 border border-slate-200 p-1">
-                  <button
-                    onClick={() => setAspectRatio('9:16')}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      aspectRatio === '9:16' ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80' : 'text-slate-600'
-                    }`}
-                  >
-                    9:16 (Vertical)
-                  </button>
-                  <button
-                    onClick={() => setAspectRatio('16:9')}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      aspectRatio === '16:9' ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80' : 'text-slate-600'
-                    }`}
-                  >
-                    16:9 (Landscape)
-                  </button>
+                <label className="text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-wider">Aspect Ratio:</label>
+                <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1">
+                  <button onClick={() => setAspectRatio('9:16')} className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${aspectRatio === '9:16' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>9:16</button>
+                  <button onClick={() => setAspectRatio('16:9')} className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${aspectRatio === '16:9' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>16:9</button>
                 </div>
               </div>
 
-              {/* FFmpeg Ducking Ratio */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between">
-                  <label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider">FFmpeg Ducking Level:</label>
-                  <span className="font-mono text-blue-600 font-bold">{Math.round(duckingVolume * 100)}%</span>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-wider">Ducking Level:</label>
+                  <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">{Math.round(duckingVolume * 100)}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="0.10"
-                  max="0.40"
-                  step="0.01"
-                  value={duckingVolume}
-                  onChange={(e) => setDuckingVolume(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
-                />
+                <input type="range" min="0.10" max="0.40" step="0.01" value={duckingVolume} onChange={(e) => setDuckingVolume(parseFloat(e.target.value))} className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2" />
               </div>
-
             </div>
           </div>
-
         </div>
 
-        {/* Right Column: Live Agent Stream & Concurrency Monitor (5 cols) */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600" />
+                <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>Live CrewAI Execution Stream</span>
-              </span>
-              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 font-semibold">
-                {isRunning ? `Phase ${currentPhase} Active` : logs.length ? 'Finished' : 'Standby'}
               </span>
             </div>
 
-            {/* Live Concurrency Stream Feed */}
             <div className="flex flex-col gap-2.5 max-h-[560px] overflow-y-auto pr-1">
-              {logs.length === 0 && !isRunning && (
-                <div className="p-8 text-center flex flex-col items-center justify-center text-slate-400 text-xs">
-                  <Radio className="w-8 h-8 text-slate-300 mb-2" />
-                  <span>Click "Kickoff CrewAI Pipeline" to start the multi-agent execution.</span>
-                </div>
-              )}
-
               {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex flex-col gap-1.5 transition-all shadow-2xs hover:bg-slate-100/50"
-                >
+                <div key={log.id} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="font-bold text-slate-900">{log.agentName}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {log.durationMs ? `${(log.durationMs / 1000).toFixed(2)}s` : ''}
-                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">{log.agentName}</span>
+                    <span className="text-[10px] font-mono text-slate-400">{(log.durationMs / 1000).toFixed(2)}s</span>
                   </div>
-
-                  <div className="text-[11px] font-mono text-blue-700 flex items-center gap-1">
-                    <span className="text-slate-500">Tool:</span>
-                    <span className="font-semibold">{log.toolUsed}</span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-600 leading-snug">
-                    {log.outputSummary}
-                  </p>
+                  <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">{log.outputSummary}</p>
                 </div>
               ))}
-
               {isRunning && (
-                <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-center gap-3 animate-pulse">
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
+                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-3 animate-pulse">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
                   <span className="font-medium">
                     {currentPhase === 1 && 'Agent 1 extracting scene breaks & mood brief via Gemini...'}
                     {currentPhase === 2 && 'Phase 2: 4 Agents concurrently generating TikTok, YouTube SEO, Thumbnail, & Lyria track...'}

@@ -20,11 +20,11 @@ export default function App() {
   const [bundle, setBundle] = useState<MediaPackageOutput | null>(null);
   const [isRegeneratingThumbnail, setIsRegeneratingThumbnail] = useState<boolean>(false);
 
-  // Dark / Light Studio Theme State
+  // Dark / Light Studio Theme State (Obsidian Dark by default)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('crewai_studio_theme');
     if (saved) return saved === 'dark';
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+    return true;
   });
 
   const toggleDarkMode = () => {
