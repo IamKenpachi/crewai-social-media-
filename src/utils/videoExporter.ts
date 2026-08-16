@@ -169,7 +169,7 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
   let videoEl: HTMLVideoElement | null = null;
   let imgEl: HTMLImageElement | null = null;
 
-  const isImage = !!imageSourceUrl || (!videoSourceUrl && !!imageSourceUrl);
+  const isImage = !!imageSourceUrl;
 
   if (isImage) {
     imgEl = new Image();
@@ -260,7 +260,17 @@ export async function exportVideoWithMusic(options: VideoExportOptions): Promise
       } catch {}
       resolve(outputBlob);
     };
-    mediaRecorder.onerror = (e) => reject(e);
+    mediaRecorder.onerror = (e) => {
+      if (videoEl && videoEl.parentNode) {
+        videoEl.pause();
+        videoEl.parentNode.removeChild(videoEl);
+      }
+      try {
+        audioSource.stop();
+        audioCtx.close();
+      } catch {}
+      reject(e);
+    };
   });
 
   // 4. Start recording and continuous rendering loop

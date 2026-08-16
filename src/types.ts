@@ -177,6 +177,7 @@ export interface MusicResult {
   energy_curve: string;
   duration_seconds: number;
   lyrics?: string;
+  lyrics_progression?: SubtitleLine[];
   is_lyria_generated?: boolean;
   frames_analyzed?: number;
 }
@@ -199,13 +200,15 @@ export interface MediaPackageOutput {
   selected_clip_id?: string;
   subtitles?: SubtitleLine[];
   subtitle_style?: SubtitleStylePreset;
-  execution_metrics: {
-    total_latency_ms: number;
-    sequential_estimate_ms: number;
-    latency_saved_percent: number;
-    tokens_consumed: number;
-    timestamp: string;
-  };
+  execution_metrics: ExecutionMetrics;
+}
+
+export interface ExecutionMetrics {
+  total_latency_ms: number;
+  sequential_estimate_ms: number;
+  latency_saved_percent: number;
+  tokens_consumed: number;
+  timestamp: string;
 }
 
 export interface AgentLogEntry {

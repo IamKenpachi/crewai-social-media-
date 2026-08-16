@@ -120,11 +120,13 @@ export const PipelineStudio: React.FC<PipelineStudioProps> = ({
             videoBlobUrl: objectUrl,
           });
         } catch (err) {
+          URL.revokeObjectURL(objectUrl);
           reject(err);
         }
       };
 
       video.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
         reject(new Error('Failed to load video file'));
       };
     });

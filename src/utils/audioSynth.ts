@@ -94,7 +94,7 @@ class MusicSynthesizerEngine {
     const chords = this.getScaleForMood(mood);
 
     this.timerId = setInterval(() => {
-      if (!this.ctx || !this.isPlaying || !this.duckingGainNode) return;
+      if (!this.ctx || !this.isPlaying || !this.duckingGainNode || this.ctx.state === 'suspended') return;
       const now = this.ctx.currentTime;
 
       // 4-on-the-floor kick on beat 0, 4, 8, 12
@@ -253,14 +253,14 @@ class MusicSynthesizerEngine {
     osc.stop(time + dur + 0.02);
   }
 
-  public getAudioContext(): AudioContext {
+  public getAudioContext(): AudioContext | null {
     this.init();
-    return this.ctx!;
+    return this.ctx;
   }
 
-  public getMasterGainNode(): GainNode {
+  public getMasterGainNode(): GainNode | null {
     this.init();
-    return this.masterGainNode!;
+    return this.masterGainNode;
   }
 
   /**

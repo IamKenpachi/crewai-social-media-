@@ -49,9 +49,10 @@ import {
 } from 'lucide-react';
 import { MediaPackageOutput, ExtractedClip, SubtitleLine, SubtitleStylePreset } from '../types';
 import { musicSynth } from '../utils/audioSynth';
-import { generateClientThumbnailSvg } from '../utils/thumbnailGenerator';
 import { exportVideoWithMusic, triggerFileDownload } from '../utils/videoExporter';
 import { parseLyriaLyricsToSubtitles } from '../utils/liricleParser';
+import { DEFAULT_CLIPS, DEFAULT_SONG_LYRICS } from '../data/demoContent';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import confetti from 'canvas-confetti';
 
@@ -73,93 +74,15 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
   isRegeneratingThumbnail = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'video' | 'thumbnail' | 'tiktok' | 'youtube' | 'pydantic'>('video');
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { copy: handleCopy, copiedKey } = useCopyToClipboard();
 
   // Multi-Clip Selection State (OpusClip Intelligence)
   const clips: ExtractedClip[] = bundle.clips && bundle.clips.length > 0 
     ? bundle.clips 
-    : [
-        {
-          id: 'clip-1',
-          clip_number: 1,
-          title: 'The Curiosity Hook',
-          hook_summary: 'Disrupts feed scrolling with high-stakes visual suspense.',
-          start_time: '0:00',
-          end_time: '0:12',
-          start_seconds: 0,
-          end_seconds: 12,
-          duration_seconds: 12,
-          virality_score: 96,
-          virality_breakdown: { hook_strength: 98, visual_climax: 94, topic_novelty: 92, audio_sync: 96, loop_continuity: 98 },
-          why_viral_reasoning: 'Immediate cognitive curiosity gap paired with rapid pacing forces viewer dwell time.',
-          retention_tactics: ['Visual pattern interrupt', 'Sub-3s spoken audio hook', 'Loop transition'],
-          subtitles: bundle.subtitles || []
-        }
-      ];
+    : DEFAULT_CLIPS;
 
   const [selectedClipId, setSelectedClipId] = useState<string>(clips[0]?.id || 'clip-1');
   const activeClip = clips.find(c => c.id === selectedClipId) || clips[0];
-
-  // Subtitle Studio State (Playful Beat-Synced Lyrics)
-  const defaultSongLyrics: SubtitleLine[] = [
-    {
-      id: 'lyric-1',
-      text: 'Red dress spinning under summer light',
-      start_ms: 0,
-      end_ms: 2800,
-      emoji: '💃',
-      words: [
-        { id: 'w-1', text: 'Red', start_ms: 0, end_ms: 500 },
-        { id: 'w-2', text: 'dress', start_ms: 500, end_ms: 1000 },
-        { id: 'w-3', text: 'spinning', start_ms: 1000, end_ms: 1600 },
-        { id: 'w-4', text: 'under', start_ms: 1600, end_ms: 2000 },
-        { id: 'w-5', text: 'summer', start_ms: 2000, end_ms: 2400 },
-        { id: 'w-6', text: 'light', start_ms: 2400, end_ms: 2800 }
-      ]
-    },
-    {
-      id: 'lyric-2',
-      text: 'Polka dots moving pure delight',
-      start_ms: 2800,
-      end_ms: 5600,
-      emoji: '✨',
-      words: [
-        { id: 'w-7', text: 'Polka', start_ms: 2800, end_ms: 3400 },
-        { id: 'w-8', text: 'dots', start_ms: 3400, end_ms: 3900 },
-        { id: 'w-9', text: 'moving', start_ms: 3900, end_ms: 4500 },
-        { id: 'w-10', text: 'pure', start_ms: 4500, end_ms: 5000 },
-        { id: 'w-11', text: 'delight', start_ms: 5000, end_ms: 5600 }
-      ]
-    },
-    {
-      id: 'lyric-3',
-      text: 'Feel the rhythm catch the breeze',
-      start_ms: 5600,
-      end_ms: 8400,
-      emoji: '🌴',
-      words: [
-        { id: 'w-12', text: 'Feel', start_ms: 5600, end_ms: 6100 },
-        { id: 'w-13', text: 'the', start_ms: 6100, end_ms: 6500 },
-        { id: 'w-14', text: 'rhythm', start_ms: 6500, end_ms: 7100 },
-        { id: 'w-15', text: 'catch', start_ms: 7100, end_ms: 7600 },
-        { id: 'w-16', text: 'the', start_ms: 7600, end_ms: 8000 },
-        { id: 'w-17', text: 'breeze', start_ms: 8000, end_ms: 8400 }
-      ]
-    },
-    {
-      id: 'lyric-4',
-      text: 'Golden moments making memories',
-      start_ms: 8400,
-      end_ms: 11800,
-      emoji: '🌟',
-      words: [
-        { id: 'w-18', text: 'Golden', start_ms: 8400, end_ms: 9000 },
-        { id: 'w-19', text: 'moments', start_ms: 9000, end_ms: 9800 },
-        { id: 'w-20', text: 'making', start_ms: 9800, end_ms: 10600 },
-        { id: 'w-21', text: 'memories', start_ms: 10600, end_ms: 11800 }
-      ]
-    }
-  ];
 
   const parsedLyriaLyrics: SubtitleLine[] = bundle.music_metadata?.lyrics
     ? parseLyriaLyricsToSubtitles(bundle.music_metadata.lyrics, bundle.music_metadata.duration_seconds || 27)
@@ -174,7 +97,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
           ? activeClip.subtitles
           : (bundle.subtitles && bundle.subtitles.length > 1)
             ? bundle.subtitles
-            : defaultSongLyrics;
+            : DEFAULT_SONG_LYRICS;
 
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStylePreset>(bundle.subtitle_style || 'hormozi');
   const [subtitlePosition, setSubtitlePosition] = useState<'top' | 'bottom'>('top');
@@ -198,7 +121,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     } else if (bundle.subtitles && bundle.subtitles.length > 1) {
       setCurrentSubtitles(bundle.subtitles);
     } else {
-      setCurrentSubtitles(defaultSongLyrics);
+      setCurrentSubtitles(DEFAULT_SONG_LYRICS);
     }
   }, [selectedClipId, activeClip, bundle]);
 
@@ -251,12 +174,6 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     setActiveThumbnailUrl(rawThumb);
   }, [selectedVariantIndex, bundle]);
 
-  const handleCopy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-
   // Sync music synth / audio stream with media playback & time tracking
   const togglePlayAudioMuxer = () => {
     if (isPlaying) {
@@ -282,7 +199,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     }
   };
 
-  // High-precision 60fps audio/video synchronization loop for full song lyrics playback
+  // High-precision audio/video synchronization loop with ~30ms throttling to avoid 60fps component re-render overhead
   useEffect(() => {
     if (!isPlaying) {
       setCurrentTimeMs(0);
@@ -290,6 +207,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     }
 
     let animId: number;
+    let lastUpdate = 0;
     const startAudioTime = performance.now();
     const lastLyricEndMs = currentSubtitles.length > 0 ? Math.max(...currentSubtitles.map(l => l.end_ms)) : 27000;
     const totalSongDurationMs = Math.max(
@@ -299,8 +217,12 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     );
 
     const syncLoop = () => {
-      const elapsed = (performance.now() - startAudioTime) % totalSongDurationMs;
-      setCurrentTimeMs(elapsed);
+      const now = performance.now();
+      const elapsed = (now - startAudioTime) % totalSongDurationMs;
+      if (now - lastUpdate > 35) {
+        setCurrentTimeMs(elapsed);
+        lastUpdate = now;
+      }
       animId = requestAnimationFrame(syncLoop);
     };
 
