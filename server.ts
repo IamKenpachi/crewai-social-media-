@@ -95,7 +95,7 @@ app.post('/api/validate-key', async (req, res) => {
 // Helper for generating high-CTR YouTube Shorts thumbnail SVG/data with best practices
 function generateProceduralThumbnailUrl(
   title: string,
-  mood: string,
+  mood: string = 'Cinematic',
   color?: string,
   aspect: '9:16' | '16:9' = '9:16',
   sourceImageBase64?: string,
@@ -104,95 +104,37 @@ function generateProceduralThumbnailUrl(
   variantType: 'EMOTION_FACE' | 'CURIOSITY_GAP' | 'MINIMAL_PUNCH' = 'CURIOSITY_GAP',
   focalHighlightText?: string
 ): string {
+  // If we have a source image or AI generated image, return it directly!
+  if (sourceImageBase64) {
+    return sourceImageBase64;
+  }
+
   const isVertical = aspect === '9:16';
   const width = isVertical ? 720 : 1280;
   const height = isVertical ? 1280 : 720;
   const accentColor = color || (variantType === 'EMOTION_FACE' ? '#EF4444' : variantType === 'MINIMAL_PUNCH' ? '#38BDF8' : '#FACC15');
   
-  // Format 2-4 word high impact hook
-  const rawText = headlineText || title || (variantType === 'EMOTION_FACE' ? 'NEVER DO THIS ❌' : variantType === 'MINIMAL_PUNCH' ? 'THE SECRET HACK' : 'SECRET REVEALED ⚡');
+  const rawText = headlineText || title || 'VIRAL MASTER';
   const words = rawText.trim().split(/\s+/);
   const hookWords = words.length > 4 ? words.slice(0, 4).join(' ') : rawText;
   const displayHook = hookWords.toUpperCase();
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <defs>
-      <!-- Base Background Gradient -->
       <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#090d16" />
         <stop offset="50%" stop-color="#111827" />
-        <stop offset="100%" stop-color="#1f2937" />
+        <stop offset="100%" stop-color="#1e1b4b" />
       </linearGradient>
-
-      <!-- Contrast Vignette Gradient to ensure text readability -->
-      <linearGradient id="vignetteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#000000" stop-opacity="0.85" />
-        <stop offset="35%" stop-color="#000000" stop-opacity="${variantType === 'MINIMAL_PUNCH' ? '0.15' : '0.25'}" />
-        <stop offset="70%" stop-color="#000000" stop-opacity="0.55" />
-        <stop offset="100%" stop-color="#000000" stop-opacity="0.92" />
-      </linearGradient>
-
-      <!-- High-Impact Neon Glow Filter -->
-      <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="${accentColor}" flood-opacity="0.85"/>
-      </filter>
-
-      <!-- Extreme Contrast Drop Shadow for Mobile Legibility -->
-      <filter id="heavyShadow" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="1.0"/>
-      </filter>
     </defs>
-
-    <!-- Base Canvas -->
     <rect width="${width}" height="${height}" fill="url(#bgGrad)" />
-
-    <!-- Uploaded Frame or Fallback Graphic -->
-    ${sourceImageBase64 ? `
-      <image href="${sourceImageBase64}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice" />
-    ` : `
-      <!-- Dynamic Geometric Backdrop for high energy -->
-      <circle cx="${width * 0.5}" cy="${height * 0.45}" r="${width * 0.4}" fill="${accentColor}" fill-opacity="0.15" filter="url(#neonGlow)"/>
-      <path d="M0 0 L${width} ${height} M0 ${height} L${width} 0" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
-    `}
-
-    <!-- Dark Contrast Vignette (Keeps center visible, darkens top & bottom for maximum readability) -->
-    <rect width="${width}" height="${height}" fill="url(#vignetteGrad)" />
-
-    <!-- Outer Cinematic Border / Rim Glow (Prevents blending into YouTube dark/light mode) -->
-    <rect x="6" y="6" width="${width - 12}" height="${height - 12}" fill="none" stroke="${accentColor}" stroke-width="${variantType === 'MINIMAL_PUNCH' ? '4' : '6'}" rx="16" opacity="0.9" filter="url(#neonGlow)" />
-
-    <!-- TOP-LEFT: Urgency Badge (Safe zone: avoids bottom-right duration overlay) -->
-    <g transform="translate(${isVertical ? 32 : 64}, ${isVertical ? 48 : 48})" filter="url(#heavyShadow)">
-      <rect x="0" y="0" width="${isVertical ? 240 : 280}" height="${isVertical ? 52 : 56}" rx="12" fill="${variantType === 'EMOTION_FACE' ? '#dc2626' : variantType === 'MINIMAL_PUNCH' ? '#0f172a' : '#ef4444'}" stroke="${variantType === 'MINIMAL_PUNCH' ? accentColor : '#ffffff'}" stroke-width="2"/>
-      <text x="${isVertical ? 120 : 140}" y="${isVertical ? 34 : 37}" font-family="Impact, Montserrat, system-ui, sans-serif" font-weight="900" font-size="${isVertical ? 22 : 24}" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">
-        ${subBadge.toUpperCase()}
-      </text>
-    </g>
-
-    <!-- CENTER / UPPER-THIRD: High-CTR 2-4 Word Hook Headline -->
-    <!-- Pill Backdrop for extreme mobile contrast -->
-    <g transform="translate(${width / 2}, ${height * (isVertical ? 0.46 : 0.48)})" filter="url(#heavyShadow)">
-      <!-- Pill Container -->
-      <rect x="${-(width * 0.42)}" y="${-(isVertical ? 54 : 60)}" width="${width * 0.84}" height="${isVertical ? 108 : 120}" rx="16" fill="#000000" fill-opacity="0.92" stroke="${accentColor}" stroke-width="4"/>
-      
-      <!-- Text Layer -->
-      <text x="0" y="${isVertical ? 18 : 20}" font-family="Impact, Montserrat, Arial Black, sans-serif" font-weight="900" font-size="${isVertical ? 46 : 54}" fill="${accentColor}" text-anchor="middle" letter-spacing="1">
+    <circle cx="${width * 0.5}" cy="${height * 0.45}" r="${width * 0.35}" fill="${accentColor}" fill-opacity="0.18" filter="blur(40px)"/>
+    <g transform="translate(${width / 2}, ${height * 0.48})">
+      <text x="0" y="0" font-family="Impact, Montserrat, Arial Black, sans-serif" font-weight="900" font-size="${isVertical ? 48 : 58}" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">
         ${displayHook}
       </text>
-    </g>
-
-    <!-- LOWER-THIRD: Visual Subtitle / Curiosity Trigger -->
-    <g transform="translate(${width / 2}, ${height * (isVertical ? 0.60 : 0.65)})" filter="url(#heavyShadow)">
-      <text x="0" y="0" font-family="Impact, Montserrat, system-ui, sans-serif" font-weight="800" font-size="${isVertical ? 26 : 30}" fill="#ffffff" text-anchor="middle" letter-spacing="2">
-        ${focalHighlightText ? focalHighlightText.toUpperCase() : (mood ? mood.substring(0, 32).toUpperCase() : '100% MUST WATCH')}
-      </text>
-    </g>
-
-    <!-- BOTTOM CALL-TO-ACTION (Placed left/center to stay clear of bottom-right YouTube duration badge) -->
-    <g transform="translate(${isVertical ? 32 : 64}, ${height - (isVertical ? 110 : 110)})" filter="url(#heavyShadow)">
-      <rect width="${isVertical ? 320 : 380}" height="${isVertical ? 48 : 52}" rx="24" fill="${accentColor}"/>
-      <text x="${isVertical ? 160 : 190}" y="${isVertical ? 31 : 34}" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="${isVertical ? 18 : 20}" fill="#000000" text-anchor="middle" letter-spacing="1">
-        ${variantType === 'EMOTION_FACE' ? 'SEE THE REACTION ▶' : variantType === 'MINIMAL_PUNCH' ? 'DISCOVER THE HACK ▶' : 'TAP TO WATCH NOW ▶'}
+      <text x="0" y="52" font-family="system-ui, sans-serif" font-weight="700" font-size="${isVertical ? 22 : 26}" fill="${accentColor}" text-anchor="middle" letter-spacing="2">
+        ${(mood || 'CINEMATIC SHORT').toUpperCase()}
       </text>
     </g>
   </svg>`;
@@ -1008,46 +950,34 @@ Apply the strict 2026 YouTube Shorts Algorithm & Search Engine Optimization (SEO
       // 3. RULE OF COMPLEMENTARITY: Thumbnail creates an open psychological loop; title provides context (never duplicate words).
       // 4. MOBILE 3-SECOND GLANCABILITY: <4 words, >60pt scale readability at 120x67px browse feed size.
       // 5. YOUTUBE DURATION SAFE ZONE: 100% clean bottom-right corner.
-      const prompt = `You are the Lead Art Director, High-CTR Graphic Artist & Thumbnail Strategist in CrewAI.
-Analyze the Creative Brief & Peak Action Moment:
+      const prompt = `You are the World-Class AI Art Director & Visual Creative Director in CrewAI.
+Analyze this media and create 3 completely distinct, creative, visually stunning thumbnail concepts with TOTAL ARTISTIC FREEDOM:
 - Media Title: "${mediaTitle}"
+- Media Summary & Pacing: "${briefResult.summary}"
 - Detected Motifs: ${JSON.stringify(briefResult.visual_motifs || [])}
 - Mood & Tone: ${briefResult.mood_and_tone}
 - Target Audience: ${briefResult.target_audience}
-- Peak Energy Timestamp: ${peakMoment} (${peakClimax})
+- Peak Moment: ${peakMoment} (${peakClimax})
 
-Apply the latest empirical YouTube Shorts & Long-Form Thumbnail Science:
+You have COMPLETE CREATIVE FREEDOM to imagine the most visually captivating, cinematic, photorealistic image generation prompts tailored specifically to this content.
+DO NOT use generic boilerplate. Tailor every scene description to the specific characters, environment, lighting, textures, action, and mood of this video.
 
-1. SELECTIVE VIBRANCY & COMPOSITION:
-   - Avoid flat oversaturation ("saturation fatigue"). Use deep matte/cinematic shadows with high-intensity accent rim lighting.
-   - Maintain 35-45% negative space around the primary subject to prevent cognitive overload.
+For each of the 3 variants:
+1. "EMOTION_FACE": An intense, expressive, high-emotion cinematic shot.
+2. "CURIOSITY_GAP": A dramatic cliffhanger, mysterious action, or high-stakes moment.
+3. "MINIMAL_PUNCH": A high-contrast hero silhouette or minimalist iconic focal point.
 
-2. FACIAL PSYCHOLOGY & BIOLOGICAL GAZE:
-   - Faces with high-stakes emotion (disbelief, intense anticipation, jaw-drop shock, or the "sadness paradox") achieve 920k+ higher average views than generic poses.
-   - Gaze angle should direct viewer ocular attention toward the central curiosity text pill.
+Provide for each variant:
+- A rich, highly detailed image generation prompt (describing subjects, camera lens, atmospheric lighting, color grading, octane render details).
+- 2-4 word punchy curiosity headline (<18 chars).
+- 5-Pillar Scorecard.
 
-3. THE RULE OF COMPLEMENTARITY (TITLE + THUMBNAIL SYNERGY):
-   - The thumbnail text must OPEN a curiosity gap (an incomplete question), NEVER duplicate or summarize the title.
-   - Text overlay strict limit: 2-4 punchy words, under 18 characters total, in UPPERCASE.
-
-4. 3 DISTINCT PSYCHOLOGICAL ARCHETYPES:
-   - ARCHETYPE 1 (EMOTION & REACTION FOCUS - "EMOTION_FACE"): Extreme expression, intense emotional stakes, urgent coral/crimson (#EF4444) rim lighting.
-   - ARCHETYPE 2 (CURIOSITY GAP / OPEN INFORMATION LOOP - "CURIOSITY_GAP"): Unresolved mystery/cliffhanger from ${peakMoment}, electric yellow (#FACC15, +19% browse CTR) badge/pill.
-   - ARCHETYPE 3 (MINIMALIST GRAPHIC PUNCH - "MINIMAL_PUNCH"): Ultra-clean high-contrast hero silhouette on deep matte black with cyber cyan (#38BDF8) or vivid emerald (#10B981) precision.
-
-5. 5-PILLAR CTR AUDIT SCORECARD:
-   - Mobile 3-Second Glancability Score (0-100)
-   - Selective Vibrancy & Edge Separation Score (0-100)
-   - Focal Clarity & Single Subject Rating (0-100)
-   - Text Economy Pass (<= 4 words & < 18 chars)
-   - YouTube Duration Safe Zone Pass (Bottom-right clean)
-
-Return a JSON object conforming strictly to the schema.`;
+Return strictly JSON conforming to the schema.`;
 
       let variantsData: any[] = [];
       let scorecardData: any = null;
-      let primaryThumbPrompt = `YouTube Shorts thumbnail art, ${aspectRatio} aspect ratio, selective vibrancy, deep cinematic shadows, 8k render, dramatic rim lighting, expressive subject: ${mediaTitle}, ${peakClimax}, depth of field, high contrast.`;
-      let styleTheme = 'Selective vibrancy with cinematic rim-lighting, deep matte shadows, and high-impact curiosity hook';
+      let primaryThumbPrompt = `Cinematic photorealistic 8K render, dramatic cinematic lighting, ultra-detailed textures, ${aspectRatio} aspect ratio, capturing: ${mediaTitle}, ${peakClimax}, ${briefResult.mood_and_tone}.`;
+      let styleTheme = 'Cinematic photorealism with volumetric rim-lighting and deep contrast';
       let primaryHeadline = 'SECRET REVEALED ⚡';
       let primaryBadge = '★ MUST WATCH';
       let primaryAccent = '#FACC15';
@@ -1071,12 +1001,12 @@ Return a JSON object conforming strictly to the schema.`;
           model: targetModel,
           contents: contentsParts,
           config: {
-            systemInstruction: 'You are an elite YouTube Shorts art director and thumbnail CTR scientist. Output strictly JSON adhering to the schema.',
+            systemInstruction: 'You are an elite YouTube Shorts art director with boundless visual imagination. Output strictly valid JSON.',
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
               properties: {
-                primary_prompt_for_gemini_image: { type: Type.STRING, description: 'Descriptive prompt sent to gemini-3-pro-image incorporating selective vibrancy and cinematic lighting.' },
+                primary_prompt_for_gemini_image: { type: Type.STRING, description: 'Creative, imaginative image generation prompt tailored to this media.' },
                 visual_style: { type: Type.STRING, description: 'Lighting, camera composition, and aesthetics.' },
                 variants: {
                   type: Type.ARRAY,
@@ -1086,7 +1016,8 @@ Return a JSON object conforming strictly to the schema.`;
                       id: { type: Type.STRING },
                       variant_type: { type: Type.STRING, description: 'EMOTION_FACE, CURIOSITY_GAP, or MINIMAL_PUNCH' },
                       title: { type: Type.STRING, description: 'Human-readable title of this concept' },
-                      concept_description: { type: Type.STRING, description: 'Psychological explanation of why this converts based on empirical data' },
+                      concept_description: { type: Type.STRING, description: 'Creative explanation of this visual concept' },
+                      image_generation_prompt: { type: Type.STRING, description: 'Highly detailed, creative text-to-image prompt for Imagen/Gemini' },
                       headline_overlay: { type: Type.STRING, description: '2-4 word uppercase curiosity hook (<18 chars)' },
                       sub_badge: { type: Type.STRING, description: '1-2 word urgency badge' },
                       color_accent: { type: Type.STRING, description: 'Hex color code' },
@@ -1137,8 +1068,9 @@ Return a JSON object conforming strictly to the schema.`;
           {
             id: 'var-a',
             variant_type: 'EMOTION_FACE',
-            title: 'Variant A: High Emotion & Reaction (Sadness/Disbelief Paradox)',
-            concept_description: 'Captures maximum emotional intensity and high-stakes disbelief (+42% curiosity click lift over neutral poses).',
+            title: 'Variant A: High Emotion & Cinematic Reaction',
+            concept_description: `Captures maximum emotional intensity and high-stakes disbelief during ${peakMoment}.`,
+            image_generation_prompt: `Cinematic close-up portrait, expressive emotional intensity, dramatic rim lighting in #EF4444, photorealistic 8K, depth of field: ${mediaTitle}`,
             headline_overlay: 'DON\'T PANIC 🚨',
             sub_badge: '⚡ SHOCKING',
             color_accent: '#EF4444',
@@ -1148,8 +1080,9 @@ Return a JSON object conforming strictly to the schema.`;
           {
             id: 'var-b',
             variant_type: 'CURIOSITY_GAP',
-            title: 'Variant B: Curiosity Gap / Open Loop (+19% Browse CTR)',
-            concept_description: 'Opens an unresolved narrative question paired with high-contrast electric yellow that pierces YouTube dark feeds.',
+            title: 'Variant B: Curiosity Gap & Narrative Suspense',
+            concept_description: 'Opens an unresolved narrative question with vibrant electric gold lighting.',
+            image_generation_prompt: `Epic wide angle shot, dramatic narrative suspense, volumetric golden hour glow in #FACC15, 8k octane render: ${mediaTitle}, ${peakClimax}`,
             headline_overlay: 'SECRET REVEALED ⚡',
             sub_badge: '★ MUST WATCH',
             color_accent: '#FACC15',
@@ -1159,8 +1092,9 @@ Return a JSON object conforming strictly to the schema.`;
           {
             id: 'var-c',
             variant_type: 'MINIMAL_PUNCH',
-            title: 'Variant C: Selective Minimalist Punch (3-Second Glancability)',
-            concept_description: 'Ultra-clean single subject on deep matte black, engineered for instant comprehension at 120x67px mobile scale.',
+            title: 'Variant C: Iconic Minimalist Hero Shot',
+            concept_description: 'Ultra-clean single subject on deep cinematic matte black, engineered for instant mobile comprehension.',
+            image_generation_prompt: `Minimalist iconic hero silhouette, cyber cyan #38BDF8 edge glow, deep matte black background, studio quality 8k render: ${mediaTitle}`,
             headline_overlay: 'THE 1% HACK 🎯',
             sub_badge: 'PRO TIP',
             color_accent: '#38BDF8',
@@ -1180,25 +1114,25 @@ Return a JSON object conforming strictly to the schema.`;
           safe_zone_audit_pass: true,
           psychological_triggers: [
             'Curiosity Gap (Open Psychological Loop)',
-            'Selective Vibrancy & Matte Shadow Separation',
-            'Biological Gaze Alignment Toward Hook Pill',
+            'Selective Vibrancy & Edge Separation',
+            'Biological Gaze Alignment',
             'Electric Yellow / Coral Salience (+19-23% CTR)'
           ],
           recommendations: [
-            'Electric Yellow (#FACC15) variant provides maximum contrast against YouTube Dark Mode feeds',
-            'Text is kept under 4 words (<18 characters) for instantaneous comprehension on 80px mobile feeds',
-            'Bottom-right safe zone preserved: 0% risk of YouTube video duration stamp occlusion'
+            'Electric Yellow (#FACC15) variant provides maximum contrast against dark mode feeds',
+            'Text is kept under 4 words (<18 characters) for instantaneous comprehension on mobile',
+            'Bottom-right safe zone preserved: 0% risk of duration stamp occlusion'
           ]
         };
       }
 
-      // Generate AI generative background using gemini-3-pro-image
+      // Generate AI generative background using gemini-3-pro-image or imagen
       let generatedAiImageBase64 = '';
       try {
         const imageGenResp = await ai.models.generateContent({
           model: 'gemini-3-pro-image',
           contents: {
-            parts: [{ text: `YouTube thumbnail high-contrast background art, selective vibrancy, cinematic lighting, 8k render, ${aspectRatio} aspect ratio: ${primaryThumbPrompt}` }]
+            parts: [{ text: `High-quality photorealistic YouTube thumbnail art, ${aspectRatio} aspect ratio, cinematic lighting, 8k render: ${primaryThumbPrompt}` }]
           },
           config: {
             imageConfig: {
@@ -1214,14 +1148,15 @@ Return a JSON object conforming strictly to the schema.`;
           }
         }
       } catch (genErr) {
-        console.warn('gemini-3-pro-image generation fallback:', genErr);
+        console.warn('gemini-3-pro-image generation note:', genErr);
       }
 
       const effectiveBaseFrame = generatedAiImageBase64 || sourceFrame;
 
-      // Composite all 3 variants into ready-to-use high-CTR thumbnail assets
+      // Composite all 3 variants into clean, authentic thumbnail assets
       const renderedVariants = variantsData.map((v, idx) => {
-        const vUrl = generateProceduralThumbnailUrl(
+        const vPrompt = v.image_generation_prompt || primaryThumbPrompt;
+        const vUrl = effectiveBaseFrame || generateProceduralThumbnailUrl(
           mediaTitle || 'VIRAL MASTERPIECE',
           briefResult.mood_and_tone,
           v.color_accent,
@@ -1236,19 +1171,19 @@ Return a JSON object conforming strictly to the schema.`;
         // Calculate Six-Slot Formula breakdown
         const sixSlot: any = {
           subject: v.variant_type === 'EMOTION_FACE' 
-            ? `Expressive creator reaction focusing on ${mediaTitle || 'subject'}` 
+            ? `Expressive subject focusing on ${mediaTitle || 'scene'}` 
             : v.variant_type === 'MINIMAL_PUNCH' 
-              ? `High-contrast single hero object / silhouette of ${mediaTitle || 'core concept'}`
-              : `High-tension curiosity element from peak moment (${peakMoment})`,
+              ? `High-contrast hero subject of ${mediaTitle || 'core concept'}`
+              : `Dynamic curiosity focal point from peak moment (${peakMoment})`,
           expression_action: v.variant_type === 'EMOTION_FACE'
-            ? 'Wide-eyed disbelief, intense emotional realization with mouth slightly agape'
+            ? 'Intense emotional reaction, wide eyes, dramatic focus'
             : v.variant_type === 'MINIMAL_PUNCH'
               ? 'Laser-sharp focus, dynamic static poise'
-              : 'Suspenseful dramatic glance toward central text badge',
-          environment_background: 'Deep cinematic bokeh backdrop with 45% negative space and subtle contextual cues',
-          lighting_atmosphere: `3D rim-lighting in ${v.color_accent || '#FACC15'} with deep matte black shadows and volumetric rim edge glow`,
-          style_medium: 'Hyper-detailed cinematic render, 8K resolution, octane-look, high texture fidelity',
-          technical_parameters: `Rule of thirds off-center composition, --ar ${aspectRatio} --v 7, mobile duration badge bottom-right clear`
+              : 'Suspenseful dramatic pose building anticipation',
+          environment_background: 'Deep cinematic bokeh backdrop with contextual elements',
+          lighting_atmosphere: `Cinematic 3D lighting with ${v.color_accent || '#FACC15'} rim glow and deep shadows`,
+          style_medium: 'Hyper-detailed cinematic photography, 8K resolution, high texture fidelity',
+          technical_parameters: `Rule of thirds composition, --ar ${aspectRatio}, clean safe zones`
         };
 
         return {
@@ -1259,7 +1194,7 @@ Return a JSON object conforming strictly to the schema.`;
           headline_overlay: v.headline_overlay,
           sub_badge: v.sub_badge,
           color_accent: v.color_accent,
-          prompt_used: primaryThumbPrompt,
+          prompt_used: vPrompt,
           six_slot_breakdown: sixSlot,
           thumbnail_url: vUrl,
           ctr_prediction: v.ctr_prediction || 18.5,
@@ -1268,7 +1203,7 @@ Return a JSON object conforming strictly to the schema.`;
             ? 'Disbelief / Shock Paradox (+42% Click Lift)' 
             : v.variant_type === 'MINIMAL_PUNCH' 
               ? 'Mobile 3-Second Glancability & Contrast' 
-              : 'Open Information Gap (+19% Browse CTR)'
+              : 'Curiosity Gap / Open Loop'
         };
       });
 

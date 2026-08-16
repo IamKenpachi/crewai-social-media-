@@ -44,7 +44,8 @@ import {
   SearchCheck,
   Type as TypeIcon,
   Smile,
-  Edit3
+  Edit3,
+  Wand2
 } from 'lucide-react';
 import { MediaPackageOutput, ExtractedClip, SubtitleLine, SubtitleStylePreset } from '../types';
 import { musicSynth } from '../utils/audioSynth';
@@ -122,8 +123,12 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
   const [exportStatusMessage, setExportStatusMessage] = useState<string>('');
   const [exportSuccess, setExportSuccess] = useState<boolean>(false);
   
-  // Thumbnail Studio Live Customizer & Multi-Variant state
-  const [customThumbPrompt, setCustomThumbPrompt] = useState<string>(bundle.thumbnail_metadata?.prompt_used || '');
+  // Thumbnail Studio & Creative AI Prompt State
+  const initialThumbUrl = bundle.thumbnail_metadata?.variants?.[0]?.thumbnail_url || bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url || '';
+  const [activeThumbnailUrl, setActiveThumbnailUrl] = useState<string>(initialThumbUrl);
+  const [customThumbPrompt, setCustomThumbPrompt] = useState<string>(
+    bundle.thumbnail_metadata?.variants?.[0]?.prompt_used || bundle.thumbnail_metadata?.prompt_used || 'Cinematic 8K render, photorealistic, dramatic rim lighting'
+  );
   const [thumbAspect, setThumbAspect] = useState<'9:16' | '16:9'>(bundle.thumbnail_metadata?.aspect_ratio || '9:16');
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(bundle.thumbnail_metadata?.selected_variant_index ?? 0);
   const [variantType, setVariantType] = useState<'EMOTION_FACE' | 'CURIOSITY_GAP' | 'MINIMAL_PUNCH'>(
@@ -132,11 +137,11 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
   const [headlineText, setHeadlineText] = useState<string>(bundle.thumbnail_metadata?.headline_overlay || 'SECRET REVEALED ⚡');
   const [subBadge, setSubBadge] = useState<string>(bundle.thumbnail_metadata?.sub_badge || '★ MUST WATCH');
   const [colorAccent, setColorAccent] = useState<string>(bundle.thumbnail_metadata?.color_accent || '#FACC15');
-  const [activeThumbnailUrl, setActiveThumbnailUrl] = useState<string>(bundle.thumbnail_metadata?.thumbnail_url || '');
+  const [showGraphicOverlay, setShowGraphicOverlay] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // When a variant is selected, auto-populate the hook, badge, and color
+  // When a variant is selected, auto-populate its specific creative prompt, hook, and image
   const handleSelectVariant = (index: number) => {
     setSelectedVariantIndex(index);
     const variants = bundle.thumbnail_metadata?.variants;
@@ -146,43 +151,31 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       if (v.sub_badge) setSubBadge(v.sub_badge);
       if (v.color_accent) setColorAccent(v.color_accent);
       if (v.variant_type) setVariantType(v.variant_type as any);
+      if (v.prompt_used) setCustomThumbPrompt(v.prompt_used);
       if (v.thumbnail_url) setActiveThumbnailUrl(v.thumbnail_url);
     }
   };
 
-  // Re-generate live composited SVG thumbnail whenever interactive controls change
+  // Sync active thumbnail when bundle updates
   useEffect(() => {
-    const sourceFrame = bundle.poster_frame || bundle.raw_media_url || bundle.thumbnail_metadata?.source_frame_url;
-    const clientSvg = generateClientThumbnailSvg({
-      title: bundle.creative_brief?.summary || 'VIRAL SHORT',
-      headlineText,
-      subBadge,
-      mood: bundle.creative_brief?.mood_and_tone,
-      colorAccent,
-      aspect: thumbAspect,
-      sourceImageBase64: sourceFrame,
-      variantType,
-      focalHighlightText: bundle.thumbnail_metadata?.variants?.[selectedVariantIndex]?.focal_point_focus
-    });
-    setActiveThumbnailUrl(clientSvg);
-  }, [headlineText, subBadge, colorAccent, thumbAspect, variantType, selectedVariantIndex, bundle]);
-
-  const COLOR_PALETTES = [
-    { name: 'Electric Yellow', hex: '#FACC15', boost: '+19% CTR', desc: 'Highest contrast on dark feeds' },
-    { name: 'Urgent Red', hex: '#EF4444', boost: '+23% CTR', desc: 'Action, urgency & emotional intensity' },
-    { name: 'Cyber Cyan', hex: '#38BDF8', boost: '+14% CTR', desc: 'Tech, futuristic & clarity' },
-    { name: 'Sunset Orange', hex: '#F97316', boost: '+17% CTR', desc: 'Warmth, food, lifestyle & DIY' },
-    { name: 'Emerald Green', hex: '#22C55E', boost: '+12% CTR', desc: 'Finance, wellness & growth' },
-  ];
-
-  const BADGE_PRESETS = [
-    '★ MUST WATCH',
-    '⚡ WAIT FOR IT',
-    '🔥 SECRET REVEALED',
-    '⚠️ NEVER DO THIS',
-    '💡 PRO HACK',
-    '🚀 100% VIRAL'
-  ];
+    const rawThumb = bundle.thumbnail_metadata?.variants?.[selectedVariantIndex]?.thumbnail_url || bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url || '';
+    if (showGraphicOverlay) {
+      const clientSvg = generateClientThumbnailSvg({
+        title: bundle.creative_brief?.summary || 'VIRAL SHORT',
+        headlineText,
+        subBadge,
+        mood: bundle.creative_brief?.mood_and_tone,
+        colorAccent,
+        aspect: thumbAspect,
+        sourceImageBase64: rawThumb,
+        variantType,
+        showOverlay: true
+      });
+      setActiveThumbnailUrl(clientSvg);
+    } else {
+      setActiveThumbnailUrl(rawThumb);
+    }
+  }, [showGraphicOverlay, headlineText, subBadge, colorAccent, thumbAspect, variantType, selectedVariantIndex, bundle]);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -299,6 +292,18 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     }
   };
 
+  // Trigger thumbnail regeneration with user's creative prompt
+  const handleTriggerRegenerateThumbnail = async () => {
+    if (!onRegenerateThumbnail || isRegeneratingThumbnail) return;
+    await onRegenerateThumbnail({
+      prompt: customThumbPrompt,
+      aspect: thumbAspect,
+      headlineText,
+      subBadge,
+      colorAccent
+    });
+  };
+
   // Subtitle line update handler
   const handleUpdateSubtitleLine = (lineId: string, newText: string, emoji?: string) => {
     setCurrentSubtitles(prev => prev.map(line => {
@@ -322,11 +327,11 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
     <div id="deliverables-package-root" className="w-full flex flex-col gap-6">
       
       {/* Top Executive Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 relative overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 CrewAI Production Deliverables Manifest
               </span>
@@ -334,10 +339,10 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 v2.6 • {clips.length} Viral {clips.length === 1 ? 'Clip' : 'Clips'} Ready
               </span>
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Production Media Deliverables Package
             </h2>
-            <p className="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
               All 6 cognitive agents completed generation. Video audio muxing rendered with original audio muted, Lyria AI soundtrack applied, Submagic animated captions enabled, and 3-clip virality matrix computed.
             </p>
           </div>
@@ -368,10 +373,10 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
 
             <button
               onClick={downloadJsonBundle}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-all shadow-xs cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all shadow-xs cursor-pointer"
               title="Download entire output manifest in JSON format"
             >
-              <FileJson className="w-4 h-4 text-slate-600" />
+              <FileJson className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               <span>Export JSON Manifest</span>
             </button>
           </div>
@@ -379,19 +384,19 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       </div>
 
       {/* OpusClip-Style Multi-Clip Selector Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col gap-3">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <Film className="w-4 h-4 text-blue-600" />
               <span>OpusClip AI Multi-Clip Selector</span>
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">
               {clips.length} Segments Identified
             </span>
           </div>
-          <span className="text-xs text-slate-500 font-medium">
-            Active Clip: <strong className="text-slate-800">{activeClip.title}</strong> ({activeClip.start_time} - {activeClip.end_time})
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Active Clip: <strong className="text-slate-800 dark:text-slate-200">{activeClip.title}</strong> ({activeClip.start_time} - {activeClip.end_time})
           </span>
         </div>
 
@@ -405,21 +410,21 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 onClick={() => setSelectedClipId(clip.id)}
                 className={`p-3.5 rounded-xl border text-left flex flex-col gap-1.5 transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-blue-50/60 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
+                    ? 'bg-blue-50/60 dark:bg-blue-900/30 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/70 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 truncate">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
                     #{clip.clip_number} • {clip.title}
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-mono font-black border border-emerald-300">
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-[11px] font-mono font-black border border-emerald-300 dark:border-emerald-700">
                     ★ {clip.virality_score}/100
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                   <span className="font-mono">{clip.start_time} - {clip.end_time} ({clip.duration_seconds}s)</span>
-                  <span className="text-blue-600 font-semibold text-[10px]">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">
                     Hook: {clip.virality_breakdown.hook_strength}%
                   </span>
                 </div>
@@ -430,11 +435,11 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       </div>
 
       {/* Main Tab Navigation Container */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
         <button
           onClick={() => setActiveTab('video')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'video' ? 'bg-white text-blue-600 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'video' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <FileVideo className="w-4 h-4 text-blue-600" />
@@ -444,17 +449,17 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
         <button
           onClick={() => setActiveTab('thumbnail')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'thumbnail' ? 'bg-white text-blue-600 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'thumbnail' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <ImageIcon className="w-4 h-4 text-amber-500" />
-          <span>AI Thumbnail Art Director</span>
+          <span>AI Thumbnail Studio</span>
         </button>
 
         <button
           onClick={() => setActiveTab('tiktok')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'tiktok' ? 'bg-white text-blue-600 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'tiktok' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Flame className="w-4 h-4 text-rose-500" />
@@ -464,17 +469,17 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
         <button
           onClick={() => setActiveTab('youtube')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'youtube' ? 'bg-white text-blue-600 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'youtube' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Youtube className="w-4 h-4 text-red-600" />
-          <span>YouTube Shorts SEO</span>
+          <span>YouTube Shorts SEO Suite</span>
         </button>
 
         <button
           onClick={() => setActiveTab('pydantic')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'pydantic' ? 'bg-white text-blue-600 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'pydantic' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <FileJson className="w-4 h-4 text-indigo-600" />
@@ -490,14 +495,14 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
           
           {/* Left: Video Player with Live Animated Subtitles (7 cols) */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
               
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Film className="w-4 h-4 text-blue-600" />
                   <span>Submagic-Style Video &amp; Subtitle Studio</span>
                 </span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
                   Original Audio Muted • AI Music Active
                 </span>
               </div>
@@ -557,15 +562,15 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
               </div>
 
               {/* Submagic Subtitle Style Preset Selector */}
-              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <TypeIcon className="w-4 h-4 text-blue-600" />
                     <span>Subtitle Animation Style Preset:</span>
                   </span>
                   <button
                     onClick={() => setIsEditingSubtitles(!isEditingSubtitles)}
-                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>{isEditingSubtitles ? 'Close Editor' : 'Edit Captions Text'}</span>
@@ -585,7 +590,7 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                       className={`p-2.5 rounded-xl text-left border flex flex-col gap-0.5 transition-all cursor-pointer ${
                         subtitleStyle === style.id
                           ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                          : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                          : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       <span className="text-xs font-black">{style.name}</span>
@@ -599,11 +604,11 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
 
               {/* Subtitle Lines Editor (Collapsible) */}
               {isEditingSubtitles && (
-                <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 animate-in fade-in duration-150">
-                  <span className="text-xs font-bold text-slate-800">Edit Caption Lines &amp; Timestamps:</span>
+                <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-150">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Edit Caption Lines &amp; Timestamps:</span>
                   <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-                    {currentSubtitles.map((line, idx) => (
-                      <div key={line.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200">
+                    {currentSubtitles.map((line) => (
+                      <div key={line.id} className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                         <span className="text-[10px] font-mono text-slate-400 w-12 shrink-0">
                           {(line.start_ms / 1000).toFixed(1)}s
                         </span>
@@ -611,14 +616,14 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                           type="text"
                           value={line.text}
                           onChange={(e) => handleUpdateSubtitleLine(line.id, e.target.value)}
-                          className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-semibold text-slate-800"
+                          className="flex-1 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-semibold text-slate-800 dark:text-slate-200"
                         />
                         <input
                           type="text"
                           value={line.emoji || ''}
                           onChange={(e) => handleUpdateSubtitleLine(line.id, line.text, e.target.value)}
                           placeholder="Emoji"
-                          className="w-12 px-1 py-1 text-center bg-slate-50 border border-slate-200 rounded text-sm"
+                          className="w-12 px-1 py-1 text-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-sm"
                         />
                       </div>
                     ))}
@@ -651,13 +656,13 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
           <div className="lg:col-span-5 flex flex-col gap-4">
             
             {/* Virality Score Card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4 text-blue-600" />
                   <span>OpusClip Virality Radar</span>
                 </span>
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-mono font-black text-xs border border-emerald-200">
+                <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-mono font-black text-xs border border-emerald-200 dark:border-emerald-800">
                   ★ {activeClip.virality_score}/100 Score
                 </span>
               </div>
@@ -672,11 +677,11 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                   { label: 'Infinite Loop Continuity', value: activeClip.virality_breakdown.loop_continuity, color: 'bg-rose-500' },
                 ].map((item, idx) => (
                   <div key={idx} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-xs font-semibold text-slate-700">
+                    <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                       <span>{item.label}</span>
-                      <span className="font-mono font-bold text-slate-900">{item.value}%</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{item.value}%</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                       <div
                         className={`h-full rounded-full ${item.color} transition-all duration-500`}
                         style={{ width: `${item.value}%` }}
@@ -687,22 +692,22 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
               </div>
 
               {/* Why This Went Viral AI Breakdown */}
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex flex-col gap-1.5">
-                <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex flex-col gap-1.5">
+                <span className="text-xs font-bold text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   <span>Why This Clip Will Perform:</span>
                 </span>
-                <p className="text-xs text-blue-900 leading-relaxed">
+                <p className="text-xs text-blue-900 dark:text-blue-300 leading-relaxed">
                   {activeClip.why_viral_reasoning}
                 </p>
               </div>
 
               {/* Actionable Retention Tactics */}
               <div className="flex flex-col gap-2 pt-1">
-                <span className="text-xs font-bold text-slate-800">Retention Strategy Applied:</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Retention Strategy Applied:</span>
                 <div className="flex flex-col gap-1.5">
                   {activeClip.retention_tactics.map((tactic, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span>{tactic}</span>
                     </div>
@@ -712,20 +717,20 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
             </div>
 
             {/* Sonic Branding / Track Info */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Music className="w-4 h-4 text-blue-600" />
                 <span>Lyria Soundtrack Master</span>
               </span>
 
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900">{bundle.music_metadata?.genre || 'Cyberpunk Synth'}</span>
-                  <span className="text-xs font-mono font-bold text-blue-600">{bundle.music_metadata?.bpm || 128} BPM</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{bundle.music_metadata?.genre || 'Cyberpunk Synth'}</span>
+                  <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{bundle.music_metadata?.bpm || 128} BPM</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {bundle.music_metadata?.instruments?.map((inst, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-medium text-slate-600">
+                    <span key={i} className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-medium text-slate-600 dark:text-slate-400">
                       {inst}
                     </span>
                   ))}
@@ -739,40 +744,56 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: AI Thumbnail Art Director & Six-Slot Formula */}
+      {/* TAB 2: AI Thumbnail Studio (Full Creative Freedom) */}
       {/* ========================================================================= */}
       {activeTab === 'thumbnail' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Left: Thumbnail Preview & Variant Selector (7 cols) */}
+          {/* Left: Thumbnail Preview & Prompt Generator (7 cols) */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
               
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-amber-500" />
-                  <span>High-CTR Multi-Variant Studio</span>
+                  <span>AI Thumbnail Studio</span>
                 </span>
-                <span className="text-xs font-bold text-emerald-600">
-                  {bundle.thumbnail_metadata?.scorecard?.overall_grade || 'A+ (98/100)'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    {bundle.thumbnail_metadata?.scorecard?.overall_grade || 'A+ (98/100)'}
+                  </span>
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <button
+                      onClick={() => setThumbAspect('9:16')}
+                      className={`px-2 py-1 text-[10px] font-bold rounded ${thumbAspect === '9:16' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs' : 'text-slate-500'}`}
+                    >
+                      9:16
+                    </button>
+                    <button
+                      onClick={() => setThumbAspect('16:9')}
+                      className={`px-2 py-1 text-[10px] font-bold rounded ${thumbAspect === '16:9' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs' : 'text-slate-500'}`}
+                    >
+                      16:9
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Rendered Thumbnail Asset */}
-              <div className={`relative rounded-2xl overflow-hidden border border-slate-300 shadow-md bg-slate-950 mx-auto ${
+              {/* Rendered Thumbnail Asset (Clean AI Image without forced ugly boxes) */}
+              <div className={`relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-md bg-slate-950 mx-auto ${
                 thumbAspect === '9:16' ? 'aspect-[9/16] max-h-[500px]' : 'aspect-[16/9] w-full max-h-[380px]'
               }`}>
                 <img
-                  src={activeThumbnailUrl || bundle.thumbnail_metadata?.thumbnail_url}
+                  src={activeThumbnailUrl || bundle.thumbnail_metadata?.thumbnail_url || bundle.poster_frame || bundle.raw_media_url}
                   alt="AI Thumbnail"
                   className="w-full h-full object-cover"
                 />
               </div>
 
-              {/* 3-Variant A/B/C Concept Switcher */}
+              {/* 3-Variant Concept Switcher */}
               <div className="flex flex-col gap-2 pt-2">
-                <span className="text-xs font-bold text-slate-800">
-                  Select High-CTR Empirical Archetype:
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Select Visual Concept / Archetype:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {bundle.thumbnail_metadata?.variants?.map((variant, idx) => {
@@ -783,19 +804,19 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                         onClick={() => handleSelectVariant(idx)}
                         className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 shadow-xs'
-                            : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
+                            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-500 ring-2 ring-amber-500/20 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900 truncate">
-                            {variant.variant_type === 'EMOTION_FACE' ? '😱 Emotion Shock' : variant.variant_type === 'MINIMAL_PUNCH' ? '🎯 Minimal Punch' : '⚡ Curiosity Gap'}
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {variant.variant_type === 'EMOTION_FACE' ? '😱 Emotion Shot' : variant.variant_type === 'MINIMAL_PUNCH' ? '🎯 Minimal Hero' : '⚡ Suspense Hook'}
                           </span>
-                          <span className="text-[10px] font-mono font-bold text-emerald-600">
+                          <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             {variant.ctr_prediction}% CTR
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 line-clamp-2">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                           {variant.concept_description}
                         </p>
                       </button>
@@ -804,58 +825,60 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 </div>
               </div>
 
-              {/* Interactive Visual Customizers */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-bold text-slate-700">Headline Overlay Text:</label>
-                  <input
-                    type="text"
-                    value={headlineText}
-                    onChange={(e) => setHeadlineText(e.target.value)}
-                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                  />
+              {/* Creative AI Prompt Box & Regeneration */}
+              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Wand2 className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Creative AI Prompt (Full Artistic Freedom):</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">Edit or refine prompt</span>
                 </div>
+                <textarea
+                  value={customThumbPrompt}
+                  onChange={(e) => setCustomThumbPrompt(e.target.value)}
+                  rows={3}
+                  className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 font-medium resize-none focus:outline-none focus:border-amber-500"
+                />
+                
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showGraphicOverlay}
+                      onChange={(e) => setShowGraphicOverlay(e.target.checked)}
+                      className="rounded text-amber-500 focus:ring-amber-400"
+                    />
+                    <span>Overlay headline text badge (Optional)</span>
+                  </label>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-bold text-slate-700">Urgency Badge:</label>
-                  <input
-                    type="text"
-                    value={subBadge}
-                    onChange={(e) => setSubBadge(e.target.value)}
-                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-bold text-slate-700">Accent Color:</label>
-                  <div className="flex items-center gap-1.5">
-                    {COLOR_PALETTES.map((cp) => (
-                      <button
-                        key={cp.hex}
-                        onClick={() => setColorAccent(cp.hex)}
-                        className={`w-7 h-7 rounded-lg border-2 transition-transform cursor-pointer ${
-                          colorAccent === cp.hex ? 'scale-110 border-slate-900 shadow-xs' : 'border-transparent'
-                        }`}
-                        style={{ backgroundColor: cp.hex }}
-                        title={`${cp.name} (${cp.boost})`}
-                      />
-                    ))}
-                  </div>
+                  <button
+                    onClick={handleTriggerRegenerateThumbnail}
+                    disabled={isRegeneratingThumbnail}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    {isRegeneratingThumbnail ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    <span>{isRegeneratingThumbnail ? 'Generating with Gemini...' : 'Generate New AI Thumbnail'}</span>
+                  </button>
                 </div>
               </div>
 
             </div>
           </div>
 
-          {/* Right: Six-Slot Prompt Architecture & Scorecard (5 cols) */}
+          {/* Right: Six-Slot Breakdown & Scorecard (5 cols) */}
           <div className="lg:col-span-5 flex flex-col gap-4">
             
             {/* Six-Slot Prompt Breakdown */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>The Six-Slot Prompt Architecture (2026)</span>
+                  <span>The Six-Slot Prompt Breakdown</span>
                 </span>
               </div>
 
@@ -863,46 +886,46 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
                 <div className="flex flex-col gap-2.5">
                   {[
                     { label: 'Slot 1: Specific Subject', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.subject },
-                    { label: 'Slot 2: Micro-Expression / Action', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.expression_action },
+                    { label: 'Slot 2: Expression / Action', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.expression_action },
                     { label: 'Slot 3: Environment & Bokeh', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.environment_background },
-                    { label: 'Slot 4: Rim Lighting & Atmosphere', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.lighting_atmosphere },
+                    { label: 'Slot 4: Lighting & Atmosphere', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.lighting_atmosphere },
                     { label: 'Slot 5: Style & Medium', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.style_medium },
                     { label: 'Slot 6: Technical Parameters', val: bundle.thumbnail_metadata.variants[selectedVariantIndex].six_slot_breakdown?.technical_parameters },
                   ].map((slot, idx) => (
-                    <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
-                      <span className="font-bold text-slate-800 block text-[11px]">{slot.label}:</span>
-                      <span className="text-slate-600 text-[11px] leading-snug">{slot.val}</span>
+                    <div key={idx} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs">
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">{slot.label}:</span>
+                      <span className="text-slate-600 dark:text-slate-400 text-[11px] leading-snug">{slot.val}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-500">
-                  Six-slot prompt architecture generated from multimodal keyframes.
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Custom AI prompt dynamically constructed from media analysis.
                 </p>
               )}
 
               {/* 5-Pillar Scorecard */}
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 flex flex-col gap-2">
-                <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  <span>5-Pillar High-CTR Scorecard:</span>
+              <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 flex flex-col gap-2">
+                <span className="text-xs font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>5-Pillar Quality Scorecard:</span>
                 </span>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex justify-between font-semibold text-slate-700">
+                  <div className="flex justify-between font-semibold text-slate-700 dark:text-slate-300">
                     <span>Mobile Glancability:</span>
-                    <strong className="text-amber-900">{bundle.thumbnail_metadata?.scorecard?.mobile_readability_score || 98}%</strong>
+                    <strong className="text-amber-900 dark:text-amber-300">{bundle.thumbnail_metadata?.scorecard?.mobile_readability_score || 98}%</strong>
                   </div>
-                  <div className="flex justify-between font-semibold text-slate-700">
+                  <div className="flex justify-between font-semibold text-slate-700 dark:text-slate-300">
                     <span>Focal Clarity:</span>
-                    <strong className="text-amber-900">{bundle.thumbnail_metadata?.scorecard?.focal_clarity_score || 96}%</strong>
+                    <strong className="text-amber-900 dark:text-amber-300">{bundle.thumbnail_metadata?.scorecard?.focal_clarity_score || 96}%</strong>
                   </div>
-                  <div className="flex justify-between font-semibold text-slate-700">
+                  <div className="flex justify-between font-semibold text-slate-700 dark:text-slate-300">
                     <span>Contrast Ratio:</span>
-                    <strong className="text-amber-900">{bundle.thumbnail_metadata?.scorecard?.contrast_ratio_score || 97}%</strong>
+                    <strong className="text-amber-900 dark:text-amber-300">{bundle.thumbnail_metadata?.scorecard?.contrast_ratio_score || 97}%</strong>
                   </div>
-                  <div className="flex justify-between font-semibold text-slate-700">
+                  <div className="flex justify-between font-semibold text-slate-700 dark:text-slate-300">
                     <span>Safe Zone Pass:</span>
-                    <strong className="text-emerald-700">100% Clean</strong>
+                    <strong className="text-emerald-700 dark:text-emerald-400">100% Clean</strong>
                   </div>
                 </div>
               </div>
@@ -915,33 +938,33 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: TikTok 2026 Algorithm Strategy */}
+      {/* TAB 3: TikTok 2026 Strategy */}
       {/* ========================================================================= */}
       {activeTab === 'tiktok' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8 flex flex-col gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
               
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Flame className="w-4 h-4 text-rose-500" />
                   <span>2026 TikTok Search Engine &amp; Viral Strategy</span>
                 </span>
-                <span className="px-3 py-1 rounded-full bg-rose-50 text-rose-700 font-mono font-bold text-xs border border-rose-200">
+                <span className="px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-mono font-bold text-xs border border-rose-200 dark:border-rose-800">
                   Viral Score: {bundle.tiktok_metadata?.viral_score_estimate || 96}/100
                 </span>
               </div>
 
               {/* Search-Optimized Query Title */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   TikTok Search-Optimized Title (Search Engine Intent):
                 </label>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white">
                   <span>{bundle.tiktok_metadata?.search_optimized_title || bundle.tiktok_metadata?.captions?.[0]}</span>
                   <button
                     onClick={() => handleCopy(bundle.tiktok_metadata?.search_optimized_title || '', 'tt-title')}
-                    className="p-1 rounded text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                    className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
                   >
                     {copiedKey === 'tt-title' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   </button>
@@ -950,43 +973,43 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
 
               {/* Sub-3s On-Screen Hook & Spoken Script */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200 flex flex-col gap-1">
-                  <span className="text-[11px] font-bold text-rose-950 uppercase">0:00-0:03 On-Screen Text Anchor:</span>
-                  <span className="text-xs font-black text-rose-900">{bundle.tiktok_metadata?.on_screen_hook_3s || 'DO NOT MAKE THIS MISTAKE IN 2026 ⚠️'}</span>
+                <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-rose-950 dark:text-rose-200 uppercase">0:00-0:03 On-Screen Text Anchor:</span>
+                  <span className="text-xs font-black text-rose-900 dark:text-rose-300">{bundle.tiktok_metadata?.on_screen_hook_3s || 'DO NOT MAKE THIS MISTAKE IN 2026 ⚠️'}</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex flex-col gap-1">
-                  <span className="text-[11px] font-bold text-blue-950 uppercase">3-Second Spoken Audio Script:</span>
-                  <span className="text-xs font-semibold text-blue-900">"{bundle.tiktok_metadata?.spoken_keyword_script || 'If you are still doing this the old way, stop right now.'}"</span>
+                <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-blue-950 dark:text-blue-200 uppercase">3-Second Spoken Audio Script:</span>
+                  <span className="text-xs font-semibold text-blue-900 dark:text-blue-300">"{bundle.tiktok_metadata?.spoken_keyword_script || 'If you are still doing this the old way, stop right now.'}"</span>
                 </div>
               </div>
 
               {/* 3-3-3 Hashtag Framework */}
               <div className="flex flex-col gap-2 pt-2">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   The "3-3-3" Strategic Hashtag Framework:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">3 Trending Broad:</span>
                     <div className="flex flex-wrap gap-1">
                       {bundle.tiktok_metadata?.hashtag_breakdown?.trending?.map((t, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">{t}</span>
+                        <span key={i} className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-[10px]">{t}</span>
                       ))}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">3 Niche Community:</span>
                     <div className="flex flex-wrap gap-1">
                       {bundle.tiktok_metadata?.hashtag_breakdown?.niche_community?.map((t, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-bold text-[10px]">{t}</span>
+                        <span key={i} className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold text-[10px]">{t}</span>
                       ))}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">3 Content Specific:</span>
                     <div className="flex flex-wrap gap-1">
                       {bundle.tiktok_metadata?.hashtag_breakdown?.content_specific?.map((t, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px]">{t}</span>
+                        <span key={i} className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">{t}</span>
                       ))}
                     </div>
                   </div>
@@ -995,12 +1018,12 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
 
               {/* 3 Caption Hooks */}
               <div className="flex flex-col gap-2 pt-2">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   3 Viral Caption Hooks:
                 </label>
                 <div className="flex flex-col gap-2">
                   {bundle.tiktok_metadata?.captions?.map((cap, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800">
+                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200">
                       <span>{cap}</span>
                       <button
                         onClick={() => handleCopy(cap, `cap-${idx}`)}
@@ -1017,23 +1040,23 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
           </div>
 
           <div className="lg:col-span-4 flex flex-col gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                 Triple-Tier High Converting CTAs
               </span>
               
               <div className="flex flex-col gap-2 text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800 block text-[11px]">1. Verbal Audio Outro:</span>
-                  <span className="text-slate-600">{bundle.tiktok_metadata?.high_converting_ctas?.verbal || 'Save this post!'}</span>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">1. Verbal Audio Outro:</span>
+                  <span className="text-slate-600 dark:text-slate-400">{bundle.tiktok_metadata?.high_converting_ctas?.verbal || 'Save this post!'}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800 block text-[11px]">2. On-Screen Visual Sticker:</span>
-                  <span className="text-slate-600">{bundle.tiktok_metadata?.high_converting_ctas?.on_screen_sticker || '📌 TAP SAVE'}</span>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">2. On-Screen Visual Sticker:</span>
+                  <span className="text-slate-600 dark:text-slate-400">{bundle.tiktok_metadata?.high_converting_ctas?.on_screen_sticker || '📌 TAP SAVE'}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800 block text-[11px]">3. Bio Link Directive:</span>
-                  <span className="text-slate-600">{bundle.tiktok_metadata?.high_converting_ctas?.bio_link_prompt || 'Link in bio'}</span>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">3. Bio Link Directive:</span>
+                  <span className="text-slate-600 dark:text-slate-400">{bundle.tiktok_metadata?.high_converting_ctas?.bio_link_prompt || 'Link in bio'}</span>
                 </div>
               </div>
             </div>
@@ -1042,84 +1065,331 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: YouTube Shorts SEO & AVD Retention */}
+      {/* TAB 4: RESTORED FULL YOUTUBE SHORTS SEO & RETENTION SUITE */}
       {/* ========================================================================= */}
       {activeTab === 'youtube' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left Column: Title, Description, Hashtag Matrix & Keywords */}
           <div className="lg:col-span-8 flex flex-col gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-              
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            
+            {/* 1. Mobile-Optimized Title (Sub-60 Char Sweet Spot) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Youtube className="w-4 h-4 text-red-600" />
-                  <span>YouTube Shorts 2026 SEO &amp; AVD Architecture</span>
+                  <span>2026 YouTube Shorts Title (Mobile First)</span>
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${
+                    (bundle.youtube_metadata?.title?.length || 0) <= 50 
+                      ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                      : (bundle.youtube_metadata?.title?.length || 0) <= 60 
+                        ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' 
+                        : 'bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                  }`}>
+                    {bundle.youtube_metadata?.title?.length || 0} / 60 chars (Optimal: 25-45)
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white flex items-center justify-between gap-3 shadow-2xs">
+                <span className="leading-relaxed">{bundle.youtube_metadata?.title}</span>
+                <button
+                  onClick={() => handleCopy(bundle.youtube_metadata?.title || '', 'yt-title')}
+                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  {copiedKey === 'yt-title' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedKey === 'yt-title' ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+
+              {/* Title mobile feed truncation check */}
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/50 p-2.5 rounded-xl">
+                <Smartphone className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300 shrink-0" />
+                <span>
+                  <strong>Mobile Feed Safety:</strong> First 35 characters contain prime curiosity gap &amp; keyword before YouTube UI overlay truncation.
                 </span>
-                <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 font-mono font-bold text-xs border border-red-200">
-                  Predicted CTR: {bundle.youtube_metadata?.ctr_prediction || 14.8}%
-                </span>
               </div>
-
-              {/* Title under 60 chars */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between">
-                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                    Front-Loaded Mobile Title ({bundle.youtube_metadata?.title?.length || 42} chars):
-                  </label>
-                  <span className="text-[10px] text-emerald-600 font-bold">Mobile Sweet Spot Pass</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-black text-slate-900">
-                  <span>{bundle.youtube_metadata?.title}</span>
-                  <button
-                    onClick={() => handleCopy(bundle.youtube_metadata?.title || '', 'yt-title')}
-                    className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
-                  >
-                    {copiedKey === 'yt-title' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Full SEO Description */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between">
-                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                    SEO Description (Front-Loaded with Indexing Keywords):
-                  </label>
-                  <button
-                    onClick={() => handleCopy(bundle.youtube_metadata?.description || '', 'yt-desc')}
-                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedKey === 'yt-desc' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>Copy Full Description</span>
-                  </button>
-                </div>
-                <textarea
-                  value={bundle.youtube_metadata?.description}
-                  readOnly
-                  rows={8}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 resize-none"
-                />
-              </div>
-
             </div>
+
+            {/* 2. Structured Front-Loaded SEO Description (150-450 Words) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <SearchCheck className="w-4 h-4 text-blue-600" />
+                    <span>Structured SEO Description (Search &amp; Browse Grounded)</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                    Front-loaded first 100 characters for mobile preview + high-retention engagement bridges.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCopy(bundle.youtube_metadata?.description || '', 'yt-desc')}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-bold shrink-0 cursor-pointer"
+                >
+                  {copiedKey === 'yt-desc' ? 'Copied Description!' : 'Copy Full Description'}
+                </button>
+              </div>
+
+              {/* Front-loaded Preview Box */}
+              {bundle.youtube_metadata?.frontloaded_hook_sentence && (
+                <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-900/30 border border-blue-200/80 dark:border-blue-800 flex flex-col gap-1 text-xs">
+                  <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+                    First 100 Chars (Visible Above The "More" Cutoff):
+                  </span>
+                  <p className="text-slate-900 dark:text-white font-semibold leading-relaxed">
+                    {bundle.youtube_metadata.frontloaded_hook_sentence}
+                  </p>
+                </div>
+              )}
+
+              {/* Modular Description Sections if present */}
+              {bundle.youtube_metadata?.description_sections ? (
+                <div className="space-y-2.5 text-xs">
+                  {/* Takeaways */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Flame className="w-3 h-3 text-amber-500" />
+                      <span>Key Takeaways (Search Index Signals):</span>
+                    </span>
+                    <ul className="space-y-1 text-slate-800 dark:text-slate-200 font-medium">
+                      {bundle.youtube_metadata.description_sections.key_takeaways.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5">
+                          <span className="text-blue-600 dark:text-blue-400">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Pinned comment & Long-form bridges */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-800 flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                        <MessageSquare className="w-3 h-3 text-amber-600" />
+                        <span>Pinned Comment Question:</span>
+                      </span>
+                      <p className="text-slate-800 dark:text-slate-200 text-[11px] font-medium leading-relaxed">
+                        {bundle.youtube_metadata.description_sections.pinned_comment_prompt}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200/80 dark:border-purple-800 flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                        <Link2 className="w-3 h-3 text-purple-600" />
+                        <span>Related Long-Form Bridge:</span>
+                      </span>
+                      <p className="text-slate-800 dark:text-slate-200 text-[11px] font-medium leading-relaxed">
+                        {bundle.youtube_metadata.description_sections.related_longform_prompt}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line font-sans leading-relaxed shadow-2xs">
+                  {bundle.youtube_metadata?.description}
+                </div>
+              )}
+            </div>
+
+            {/* 3. 2026 Hashtag Strategy Matrix */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Hash className="w-4 h-4 text-red-600" />
+                    <span>YouTube Shorts Hashtag Matrix (Anti-Spam Engineered)</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                    Balancing the mandatory #Shorts feed signal with 3 Niche Community tags and 3 Search Intent tags.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCopy(bundle.youtube_metadata?.tags?.map(t => `#${t}`).join(' ') || '', 'all-yt-tags')}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-bold shrink-0 cursor-pointer"
+                >
+                  {copiedKey === 'all-yt-tags' ? 'Copied Stack!' : 'Copy Tags'}
+                </button>
+              </div>
+
+              {bundle.youtube_metadata?.hashtag_strategy ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-red-700 dark:text-red-300 uppercase tracking-wider">Mandatory Tag:</span>
+                    <span className="text-xs font-mono font-bold text-red-900 dark:text-red-200">{bundle.youtube_metadata.hashtag_strategy.primary_tag}</span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">3 Niche Community:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {bundle.youtube_metadata.hashtag_strategy.niche_community_tags?.map((tag, i) => (
+                        <span key={i} className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">3 Search Intent Ranking:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {bundle.youtube_metadata.hashtag_strategy.search_ranking_tags?.map((tag, i) => (
+                        <span key={i} className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {bundle.youtube_metadata?.tags?.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-red-700 dark:text-red-300 shadow-2xs"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 4. High-Volume Search Keywords for Tag Input */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  Comma-Separated Keywords for Studio Tags Box
+                </span>
+                <button
+                  onClick={() => handleCopy(bundle.youtube_metadata?.tags?.join(', ') || '', 'yt-tags-csv')}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-bold cursor-pointer"
+                >
+                  {copiedKey === 'yt-tags-csv' ? 'Copied CSV!' : 'Copy Comma-Separated'}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {bundle.youtube_metadata?.tags?.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 font-medium"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
           </div>
 
+          {/* Right Column: Metrics, Retention Engineering & Chapters */}
           <div className="lg:col-span-4 flex flex-col gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                AVD Infinite Loop Engineering
-              </span>
-
-              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 flex flex-col gap-1.5 text-xs">
-                <span className="font-bold text-purple-950">Target Average View Duration:</span>
-                <span className="font-mono text-lg font-black text-purple-700">
-                  {bundle.youtube_metadata?.avd_retention_engineering?.target_avd_percentage || 108}% AVD
-                </span>
-                <span className="text-slate-600 text-[11px] leading-relaxed">
-                  {bundle.youtube_metadata?.avd_retention_engineering?.loop_transition_technique}
+            
+            {/* 2026 Shorts Metrics */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  <span>2026 Shorts Metrics</span>
+                </h3>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
+                  High Distribution
                 </span>
               </div>
+
+              {/* CTR & Search Rank */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1 shadow-2xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Browse CTR:</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black text-slate-900 dark:text-white">{bundle.youtube_metadata?.ctr_prediction || 15.4}%</span>
+                    <span className="text-[10px] text-emerald-600 font-bold">Top 5%</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1 shadow-2xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Search Rank Score:</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black text-blue-600 dark:text-blue-400">{bundle.youtube_metadata?.seo_search_ranking_score || 94}/100</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* AVD Target Bar */}
+              {bundle.youtube_metadata?.avd_retention_engineering && (
+                <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-200/80 dark:border-emerald-800 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
+                      <Repeat className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Target AVD (Rewatch Rate):</span>
+                    </span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{bundle.youtube_metadata.avd_retention_engineering.target_avd_percentage}%+</span>
+                  </div>
+                  <div className="w-full bg-emerald-200/60 dark:bg-emerald-950 h-2 rounded-full overflow-hidden">
+                    <div className="bg-emerald-600 h-full rounded-full" style={{ width: '92%' }} />
+                  </div>
+                  <p className="text-[10px] text-emerald-800 dark:text-emerald-300 leading-tight">
+                    AVD &gt;100% signals the algorithm to push video to secondary multi-million viewer Shorts shelves.
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* AVD & Loop Retention Engineering */}
+            {bundle.youtube_metadata?.avd_retention_engineering && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Repeat className="w-4 h-4 text-purple-600" />
+                    <span>Loop &amp; Retention Engineering</span>
+                  </h3>
+                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 bg-purple-50 dark:bg-purple-900/40 rounded border border-purple-200 dark:border-purple-800">
+                    2026 Engine
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Seamless Loop Transition (Final Frame ➔ 0:00):
+                    </span>
+                    <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                      {bundle.youtube_metadata.avd_retention_engineering.loop_transition_technique}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      0:00 - 0:02 Swipe-Away Prevention:
+                    </span>
+                    <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                      {bundle.youtube_metadata.avd_retention_engineering.swipe_away_prevention}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Chapters breakdown */}
+            {bundle.youtube_metadata?.chapters && bundle.youtube_metadata.chapters.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span>Pacing &amp; Structured Chapters</span>
+                  </h3>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs flex flex-col gap-2 shadow-2xs">
+                  {bundle.youtube_metadata.chapters.map((ch, i) => (
+                    <div key={i} className="flex items-center justify-between text-[11px]">
+                      <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">{ch.time}</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-medium">{ch.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
+
         </div>
       )}
 
@@ -1127,15 +1397,15 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
       {/* TAB 5: Pydantic Schema & Manifest */}
       {/* ========================================================================= */}
       {activeTab === 'pydantic' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <FileJson className="w-4 h-4 text-indigo-600" />
               <span>Full Validated MediaPackageOutput Schema</span>
             </span>
             <button
               onClick={() => handleCopy(JSON.stringify(bundle, null, 2), 'pydantic-json')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
             >
               {copiedKey === 'pydantic-json' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>Copy Raw JSON</span>
