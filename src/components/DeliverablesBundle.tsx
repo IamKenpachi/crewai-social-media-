@@ -821,6 +821,72 @@ export const DeliverablesBundle: React.FC<DeliverablesBundleProps> = ({
               </div>
             </div>
 
+            {/* Lyria Song Lyrics & Vocal Track Sheet (Right Bottom on Top of Soundtrack Master) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Mic className="w-4 h-4 text-pink-500" />
+                  <span>Lyria AI Song Lyrics &amp; Vocal Score</span>
+                </span>
+                <button
+                  onClick={() => {
+                    const allLyricsText = currentSubtitles.map(l => l.text).join('\n');
+                    handleCopy(allLyricsText, 'lyrics-sheet');
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 text-[11px] font-bold cursor-pointer transition-colors"
+                >
+                  {copiedKey === 'lyrics-sheet' ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-500" />
+                      <span className="text-emerald-500">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy All</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Rhythmic Vocal Lyrics List with Live Highlighting */}
+              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                {currentSubtitles.map((line) => {
+                  const isLineActive = currentTimeMs >= line.start_ms && currentTimeMs <= line.end_ms;
+                  return (
+                    <div
+                      key={line.id}
+                      className={`p-2.5 rounded-xl border transition-all duration-150 flex items-center justify-between gap-3 ${
+                        isLineActive
+                          ? 'bg-pink-50/80 dark:bg-pink-950/40 border-pink-400/60 ring-2 ring-pink-500/20 shadow-xs'
+                          : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100/70 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                          isLineActive 
+                            ? 'bg-pink-500 text-white animate-pulse' 
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                          {(line.start_ms / 1000).toFixed(1)}s
+                        </span>
+                        <span className={`text-xs font-semibold truncate ${
+                          isLineActive ? 'text-pink-900 dark:text-pink-200 font-bold' : 'text-slate-700 dark:text-slate-300'
+                        }`}>
+                          {line.text}
+                        </span>
+                      </div>
+                      {line.emoji && (
+                        <span className={`text-base ${isLineActive ? 'animate-bounce' : ''}`}>
+                          {line.emoji}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Sonic Branding / Track Info */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
